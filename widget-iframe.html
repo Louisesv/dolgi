@@ -474,22 +474,26 @@ function renderEpisodes(charId) {
             `;
         });
 
-        html += `
-            <div class="ep-card ${isClosed ? 'closed' : ''}">
-                <div class="ep-header">
-                    <div class="ep-title">
-                        ${ep.title}
-                        ${isQuest && !isClosed ? '<span class="quest-badge">⭐ Квест</span>' : ''}
-                    </div>
-                    <span class="ep-status ${statusClass}">${statusText}</span>
-                </div>
-                ${ep.meta ? `<div class="ep-meta">${ep.meta}</div>` : ''}
-                <div class="ep-players">
-                    ${playersHtml || '<span style="color:#9ca3af;font-style:italic;font-size:0.8rem;">Нет участников</span>'}
-                </div>
-                ${isClosed && ep.result ? `<div class="ep-result">📝 ${ep.result}</div>` : ''}
+// Проверяем, есть ли уже "⭐" в названии или мета-информации
+const hasQuestMarker = isQuest && !isClosed;
+const questBadge = hasQuestMarker ? '<span class="quest-badge">⭐ Квест</span>' : '';
+
+html += `
+    <div class="ep-card ${isClosed ? 'closed' : ''}">
+        <div class="ep-header">
+            <div class="ep-title">
+                ${ep.title}
+                ${questBadge}
             </div>
-        `;
+            <span class="ep-status ${statusClass}">${statusText}</span>
+        </div>
+        ${ep.meta ? `<div class="ep-meta">${ep.meta}</div>` : ''}
+        <div class="ep-players">
+            ${playersHtml || '<span style="color:#9ca3af;font-style:italic;font-size:0.8rem;">Нет участников</span>'}
+        </div>
+        ${isClosed && ep.result ? `<div class="ep-result">📝 ${ep.result}</div>` : ''}
+    </div>
+`;
     });
 
     epList.innerHTML = html;

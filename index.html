@@ -135,7 +135,6 @@
         .ep-display .ep-title { font-size: 1.05rem; font-weight: 600; }
         .ep-display .ep-meta { font-size: 0.85rem; color: #6b7280; margin-bottom: 12px; }
 
-        /* Квестовый маркер */
         .quest-badge {
             display: inline-flex; align-items: center; gap: 4px;
             background: #fee2e2; color: #dc2626; font-weight: 700;
@@ -195,39 +194,6 @@
         .btn-danger-outline { background: transparent; border: 2px solid #ef4444; color: #ef4444; }
         .btn-danger-outline:hover { background: #fee2e2; }
 
-        /* Форма добавления эпизода — отдельный блок с плюсиком */
-        .add-ep-block {
-            display: flex; gap: 10px; flex-wrap: wrap;
-            padding: 12px 16px; margin: 8px 0 12px 0;
-            background: #ffffff; border-radius: 10px;
-            border: 2px solid #e5e7eb;
-            align-items: center;
-        }
-        .add-ep-block .add-label {
-            font-size: 0.8rem; font-weight: 600; color: #6b7280;
-            margin-right: 4px;
-        }
-        .add-ep-block input {
-            padding: 6px 12px; border: 2px solid #e5e7eb; border-radius: 8px;
-            font-size: 0.85rem; outline: none; font-family: inherit;
-            background: #fafbfc; transition: 0.2s; flex: 1; min-width: 120px;
-        }
-        .add-ep-block input:focus {
-            border-color: #4f46e5; background: #ffffff;
-            box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
-        }
-        .add-ep-block input::placeholder { color: #9ca3af; }
-        .add-ep-block .btn-add-ep {
-            background: #4f46e5; color: #ffffff; border: none;
-            padding: 6px 18px; border-radius: 8px;
-            font-size: 1rem; font-weight: 600; cursor: pointer;
-            transition: 0.2s; font-family: inherit;
-            display: flex; align-items: center; gap: 4px;
-        }
-        .add-ep-block .btn-add-ep:hover {
-            background: #4338ca; transform: scale(1.02);
-        }
-
         /* Форма добавления участника */
         .add-player-block {
             display: flex; gap: 10px; flex-wrap: wrap;
@@ -261,32 +227,179 @@
             width: 16px; height: 16px; accent-color: #dc2626; cursor: pointer;
         }
 
+        /* ===== ГЛАВНАЯ КНОПКА ДОБАВЛЕНИЯ ===== */
+        .fab-add-ep {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: #ffffff;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            box-shadow: 0 6px 24px rgba(79, 70, 229, 0.4);
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .fab-add-ep:hover {
+            transform: scale(1.08);
+            background: #4338ca;
+            box-shadow: 0 8px 32px rgba(79, 70, 229, 0.5);
+        }
+
+        /* ===== МОДАЛКА ДОБАВЛЕНИЯ ЭПИЗОДА ===== */
+        .modal-add-ep {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+        .modal-add-ep.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-add-ep .modal-content {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 28px 32px;
+            max-width: 520px;
+            width: 92%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+        }
+        .modal-add-ep .modal-content h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 16px;
+        }
+        .modal-add-ep .modal-content label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 12px 0 4px 0;
+        }
+        .modal-add-ep .modal-content select,
+        .modal-add-ep .modal-content input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            background: #fafbfc;
+            transition: 0.2s;
+        }
+        .modal-add-ep .modal-content select:focus,
+        .modal-add-ep .modal-content input:focus {
+            border-color: #4f46e5;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
+        }
+        .modal-add-ep .modal-content textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            outline: none;
+            background: #fafbfc;
+            transition: 0.2s;
+        }
+        .modal-add-ep .modal-content textarea:focus {
+            border-color: #4f46e5;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
+        }
+        .modal-add-ep .modal-content .hint {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .modal-add-ep .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-add-ep .modal-actions .btn-cancel {
+            background: transparent;
+            border: 2px solid #e5e7eb;
+            color: #374151;
+            padding: 8px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        .modal-add-ep .modal-actions .btn-cancel:hover {
+            background: #f3f4f6;
+        }
+        .modal-add-ep .modal-actions .btn-confirm {
+            background: #4f46e5;
+            border: none;
+            color: #ffffff;
+            padding: 8px 28px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        .modal-add-ep .modal-actions .btn-confirm:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+        }
+
         .hidden { display: none !important; }
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
             display: flex; justify-content: center; align-items: center;
-            z-index: 999; opacity: 0; pointer-events: none; transition: 0.3s;
+            z-index: 998; opacity: 0; pointer-events: none; transition: 0.3s;
         }
         .modal-overlay.visible { opacity: 1; pointer-events: auto; }
-        .modal-content {
+        .modal-overlay .modal-content {
             background: #ffffff; border-radius: 16px; padding: 24px;
             max-width: 480px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
         }
-        .modal-content h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
-        .modal-content p { color: #6b7280; font-size: 0.9rem; margin-bottom: 12px; }
-        .modal-content textarea {
+        .modal-overlay .modal-content h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+        .modal-overlay .modal-content p { color: #6b7280; font-size: 0.9rem; margin-bottom: 12px; }
+        .modal-overlay .modal-content textarea {
             width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb;
             border-radius: 10px; font-size: 0.9rem; font-family: inherit;
             resize: vertical; min-height: 80px; margin-bottom: 12px;
             outline: none; transition: 0.2s; background: #fafbfc;
         }
-        .modal-content textarea:focus {
+        .modal-overlay .modal-content textarea:focus {
             border-color: #4f46e5; background: #ffffff;
             box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
         }
-        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .modal-overlay .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
         @media (max-width: 768px) {
             .main-layout { flex-direction: column; }
@@ -299,7 +412,8 @@
             .players-vertical { gap: 4px; }
             .player-row { padding: 6px 10px; }
             .ep-display .ep-header { flex-direction: column; align-items: stretch; }
-            .add-ep-block { flex-direction: column; align-items: stretch; }
+            .fab-add-ep { width: 50px; height: 50px; font-size: 26px; bottom: 20px; right: 20px; }
+            .modal-add-ep .modal-content { padding: 20px; }
         }
         @media (max-width: 480px) {
             body { padding: 0.5rem; }
@@ -333,7 +447,43 @@
     </div>
 </div>
 
-<!-- Модалка -->
+<!-- ===== КНОПКА ДОБАВЛЕНИЯ ЭПИЗОДА (ПЛАВАЮЩАЯ) ===== -->
+<button class="fab-add-ep" id="fabAddEp" title="Добавить эпизод">➕</button>
+
+<!-- ===== МОДАЛКА ДОБАВЛЕНИЯ ЭПИЗОДА ===== -->
+<div class="modal-add-ep" id="modalAddEp">
+    <div class="modal-content">
+        <h2>➕ Новый эпизод</h2>
+
+        <label for="addEpCharSelect">Персонаж</label>
+        <select id="addEpCharSelect">
+            <option value="">— Выберите персонажа —</option>
+        </select>
+
+        <label for="addEpTitle">Название эпизода</label>
+        <input type="text" id="addEpTitle" placeholder="Например: wellerman" />
+
+        <label for="addEpMeta">Дополнительная информация</label>
+        <input type="text" id="addEpMeta" placeholder="Например: 302г от з.э. — Эйгон, Деймон, Алисса Веларион" />
+
+        <label for="addEpPlayers">Участники</label>
+        <textarea id="addEpPlayers" placeholder="Каждый участник с новой строки&#10;Например:&#10;Эйгон&#10;Деймон&#10;Алисса Веларион"></textarea>
+        <div class="hint">✏️ Каждое имя с новой строки</div>
+
+        <div style="margin-top: 12px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;font-size:0.9rem;">
+                <input type="checkbox" id="addEpQuest" /> ⭐ Отметить как квест
+            </label>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" id="addEpCancel">Отмена</button>
+            <button class="btn-confirm" id="addEpConfirm">➕ Создать</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА ЗАВЕРШЕНИЯ ЭПИЗОДА ===== -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal-content">
         <h3>📝 Завершить эпизод</h3>
@@ -400,6 +550,17 @@ const modalComment = document.getElementById('modalComment');
 const modalCancel = document.getElementById('modalCancel');
 const modalConfirm = document.getElementById('modalConfirm');
 
+// Модалка добавления эпизода
+const modalAddEp = document.getElementById('modalAddEp');
+const addEpCharSelect = document.getElementById('addEpCharSelect');
+const addEpTitle = document.getElementById('addEpTitle');
+const addEpMeta = document.getElementById('addEpMeta');
+const addEpPlayers = document.getElementById('addEpPlayers');
+const addEpQuest = document.getElementById('addEpQuest');
+const addEpCancel = document.getElementById('addEpCancel');
+const addEpConfirm = document.getElementById('addEpConfirm');
+const fabAddEp = document.getElementById('fabAddEp');
+
 // ================================================================
 // ЗАГРУЗКА / СОХРАНЕНИЕ
 // ================================================================
@@ -413,6 +574,7 @@ function loadData() {
             db.ref(DB_PATH).set(data);
         }
         renderAll();
+        updateAddEpSelect();
     }, function(error) {
         console.error('Ошибка загрузки:', error);
     });
@@ -579,6 +741,7 @@ function renderAll() {
         `;
     }
     updateCounter();
+    updateAddEpSelect();
 }
 
 function updateCounter() {
@@ -588,6 +751,23 @@ function updateCounter() {
         total += Object.keys(data.characters[id].episodes || {}).length;
     });
     counterBadge.textContent = total + ' эпизодов';
+}
+
+function updateAddEpSelect() {
+    if (!data) return;
+    const select = addEpCharSelect;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">— Выберите персонажа —</option>';
+    Object.keys(data.characters).forEach(id => {
+        const ch = data.characters[id];
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = ch.name;
+        select.appendChild(opt);
+    });
+    if (currentVal && data.characters[currentVal]) {
+        select.value = currentVal;
+    }
 }
 
 // ================================================================
@@ -672,6 +852,7 @@ function renderCharacters() {
             saveData();
             renderAll();
             selectCharacter(id);
+            updateAddEpSelect();
         });
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') addBtn.click();
@@ -699,7 +880,6 @@ function renderCharPanel(charId) {
     let openKeys = keys.filter(k => !episodes[k].closed);
     let closedKeys = keys.filter(k => episodes[k].closed);
 
-    // Фильтр по квестам
     if (showOnlyQuests) {
         openKeys = openKeys.filter(k => episodes[k].quest === true);
     }
@@ -756,7 +936,6 @@ function renderCharPanel(charId) {
                 </div>
             </div>
 
-            <!-- ВЫПАДАЮЩИЙ СПИСОК -->
             <select class="ep-select" id="epSelect">
                 <option value="">— Выберите эпизод —</option>
                 ${openKeys.map(k => `
@@ -768,15 +947,7 @@ function renderCharPanel(charId) {
 
             ${epDisplay}
 
-            <!-- ФОРМА ДОБАВЛЕНИЯ ЭПИЗОДА — с плюсиком -->
-            <div class="add-ep-block">
-                <span class="add-label">➕ Новый эпизод</span>
-                <input type="text" id="newEpTitle" placeholder="Название..." />
-                <input type="text" id="newEpMeta" placeholder="Доп. информация..." />
-                <button class="btn-add-ep" id="addEpBtn">➕</button>
-            </div>
-
-            <!-- ФОРМА ДОБАВЛЕНИЯ УЧАСТНИКА -->
+            <!-- Форма добавления участника -->
             <div class="add-player-block">
                 <span style="font-size:0.8rem;color:#6b7280;">👤 Добавить участника:</span>
                 <input type="text" id="newPlayerName" placeholder="Имя..." />
@@ -791,7 +962,6 @@ function renderCharPanel(charId) {
     // ОБРАБОТЧИКИ
     // ============================================================
 
-    // Фильтр квестов
     const filterCheck = document.getElementById('questFilterCheck');
     if (filterCheck) {
         filterCheck.addEventListener('change', function() {
@@ -818,40 +988,7 @@ function renderCharPanel(charId) {
         });
     }
 
-    // ДОБАВЛЕНИЕ ЭПИЗОДА — через отдельную форму с плюсиком
-    const addEpBtn = document.getElementById('addEpBtn');
-    const newEpTitle = document.getElementById('newEpTitle');
-    const newEpMeta = document.getElementById('newEpMeta');
-    if (addEpBtn) {
-        addEpBtn.addEventListener('click', function() {
-            const title = newEpTitle.value.trim();
-            if (!title) { alert('Введите название эпизода'); return; }
-            const meta = newEpMeta.value.trim();
-            const id = charId + '_' + Date.now();
-            ch.episodes[id] = {
-                title: title,
-                meta: meta,
-                players: [],
-                closed: false,
-                result: '',
-                quest: false
-            };
-            newEpTitle.value = '';
-            newEpMeta.value = '';
-            selectedEp = id;
-            saveData();
-            renderCharPanel(charId);
-            updateCounter();
-        });
-        newEpTitle.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') addEpBtn.click();
-        });
-        newEpMeta.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') addEpBtn.click();
-        });
-    }
-
-    // ДОБАВЛЕНИЕ УЧАСТНИКА
+    // Добавление участника
     const addPlayerBtn = document.getElementById('addPlayerBtn');
     const newPlayerName = document.getElementById('newPlayerName');
     if (addPlayerBtn) {
@@ -934,6 +1071,69 @@ function renderEpisodeDisplay(charId, epId) {
         </div>
     `;
 }
+
+// ================================================================
+// МОДАЛКА ДОБАВЛЕНИЯ ЭПИЗОДА
+// ================================================================
+function openAddEpModal() {
+    addEpTitle.value = '';
+    addEpMeta.value = '';
+    addEpPlayers.value = '';
+    addEpQuest.checked = false;
+    if (selectedChar && data.characters[selectedChar]) {
+        addEpCharSelect.value = selectedChar;
+    } else {
+        addEpCharSelect.value = '';
+    }
+    modalAddEp.classList.add('visible');
+    setTimeout(() => addEpTitle.focus(), 100);
+}
+
+function closeAddEpModal() {
+    modalAddEp.classList.remove('visible');
+}
+
+fabAddEp.addEventListener('click', openAddEpModal);
+
+addEpCancel.addEventListener('click', closeAddEpModal);
+
+modalAddEp.addEventListener('click', function(e) {
+    if (e.target === modalAddEp) closeAddEpModal();
+});
+
+addEpConfirm.addEventListener('click', function() {
+    const charId = addEpCharSelect.value;
+    if (!charId || !data.characters[charId]) {
+        alert('Выберите персонажа');
+        return;
+    }
+    const title = addEpTitle.value.trim();
+    if (!title) {
+        alert('Введите название эпизода');
+        return;
+    }
+    const meta = addEpMeta.value.trim();
+    const playersText = addEpPlayers.value.trim();
+    const players = playersText ? playersText.split('\n').map(s => s.trim()).filter(s => s) : [];
+    const quest = addEpQuest.checked;
+
+    const id = charId + '_' + Date.now();
+    data.characters[charId].episodes[id] = {
+        title: title,
+        meta: meta,
+        players: players.map(name => ({ name: name, done: false })),
+        closed: false,
+        result: '',
+        quest: quest
+    };
+
+    saveData();
+    closeAddEpModal();
+    selectedEp = id;
+    selectedChar = charId;
+    renderAll();
+    updateCounter();
+});
 
 // ================================================================
 // ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
@@ -1066,7 +1266,7 @@ document.addEventListener('click', function(e) {
 });
 
 // ================================================================
-// МОДАЛКА
+// МОДАЛКА ЗАВЕРШЕНИЯ
 // ================================================================
 modalCancel.addEventListener('click', function() {
     modalOverlay.classList.remove('visible');

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Очередь — виджет</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: transparent;
+            color: #1a1a2e;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1.4;
+            min-width: 260px;
+        }
+
+        .widget-container {
+            padding: 6px 4px;
+        }
+
+        /* Выбор персонажа */
+        .char-select-row {
+            margin-bottom: 10px;
+        }
+        .char-select-row select {
+            width: 100%;
+            padding: 6px 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: #ffffff;
+            color: #1a1a2e;
+            cursor: pointer;
+            outline: none;
+            transition: 0.2s;
+        }
+        .char-select-row select:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
+        }
+
+        /* Карточка эпизода */
+        .ep-card {
+            background: #fafbfc;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            transition: 0.2s;
+        }
+        .ep-card.closed {
+            opacity: 0.5;
+            background: #f9fafb;
+        }
+        .ep-card .ep-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .ep-card .ep-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #1a1a2e;
+        }
+        .ep-card .ep-meta {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        .ep-card .ep-status {
+            font-size: 0.65rem;
+            padding: 1px 8px;
+            border-radius: 12px;
+            background: #f3f4f6;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .ep-card .ep-status.closed {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .ep-card .ep-status.quest {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #dc2626;
+        }
+
+        /* Участники в эпизоде — компактно */
+        .ep-players {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+            margin-top: 6px;
+        }
+        .ep-players .p-tag {
+            font-size: 0.8rem;
+            color: #374151;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #ffffff;
+            border: 1px solid transparent;
+            transition: 0.2s;
+        }
+        .ep-players .p-tag.done {
+            opacity: 0.4;
+            text-decoration: line-through;
+            color: #6b7280;
+        }
+        .ep-players .p-tag.next {
+            border-color: #4f46e5;
+            background: #eef2ff;
+            font-weight: 600;
+            color: #4f46e5;
+        }
+        .ep-players .p-tag.quest-tag {
+            background: #fee2e2;
+            border-color: #dc2626;
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        /* Статус загрузки */
+        .loading-w {
+            text-align: center;
+            opacity: 0.6;
+            padding: 16px 0;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        .empty-w {
+            text-align: center;
+            color: #9ca3af;
+            padding: 16px 0;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+        .subtitle-w {
+            font-size: 0.7rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 8px 0 4px 0;
+        }
+
+        .quest-badge {
+            display: inline-block;
+            background: #fee2e2;
+            color: #dc2626;
+            font-weight: 700;
+            font-size: 0.6rem;
+            padding: 1px 8px;
+            border-radius: 12px;
+            border: 1px solid #dc2626;
+            margin-left: 4px;
+        }
+
+        @media (max-width: 480px) {
+            .ep-card .ep-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .ep-players {
+                gap: 3px 8px;
+            }
+            .ep-players .p-tag {
+                font-size: 0.75rem;
+                padding: 1px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="widget-container" id="widgetApp">
+    <div class="char-select-row">
+        <select id="charSelect">
+            <option value="">— Выберите персонажа —</option>
+        </select>
+    </div>
+
+    <div id="epList">
+        <div class="loading-w">Выберите персонажа</div>
+    </div>
+</div>
+
+<script>
+// ================================================================
+// КОНФИГ FIREBASE
+// ================================================================
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyARt1JxJWkCG7u9BS8LoeiEH4Dan18T8R0",
+    authDomain: "spisokdolgovados.firebaseapp.com",
+    databaseURL: "https://spisokdolgovados-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "spisokdolgovados",
+    storageBucket: "spisokdolgovados.firebasestorage.app",
+    messagingSenderId: "502720889875",
+    appId: "1:502720889875:web:230487eba236d913202be6"
+};
+// ================================================================
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+}
+const db = firebase.database();
+const DB_PATH = 'debtTracker';
+
+// ================================================================
+// СОСТОЯНИЕ
+// ================================================================
+let data = null;
+let currentChar = null;
+
+const charSelect = document.getElementById('charSelect');
+const epList = document.getElementById('epList');
+
+// ================================================================
+// ЗАГРУЗКА ДАННЫХ
+// ================================================================
+function loadData() {
+    db.ref(DB_PATH).on('value', function(snapshot) {
+        const val = snapshot.val();
+        if (val) {
+            data = val;
+        } else {
+            data = getDefaultData();
+            db.ref(DB_PATH).set(data);
+        }
+        renderSelects();
+        if (currentChar && data.characters[currentChar]) {
+            renderEpisodes(currentChar);
+        }
+    }, function(error) {
+        console.error('Ошибка загрузки:', error);
+    });
+}
+
+function getDefaultData() {
+    return {
+        characters: {
+            'triston': {
+                name: 'Тристон',
+                episodes: {
+                    'triston_1': {
+                        title: 'So, We\'ll Go No More a Roving',
+                        meta: '300 г. от З.Э. — Тристон и Роннел',
+                        players: [
+                            { name: 'Тристон', done: false },
+                            { name: 'Роннел', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'triston_2': {
+                        title: 'Shouldn\'t Have Wished To Live In More Interesting Times',
+                        meta: 'конец 301 — Тристон и Роннел',
+                        players: [
+                            { name: 'Тристон', done: false },
+                            { name: 'Роннел', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'triston_3': {
+                        title: 'May a star light your way',
+                        meta: 'начало 302-го от з.э. — Тристон и Эртур',
+                        players: [
+                            { name: 'Тристон', done: false },
+                            { name: 'Эртур', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    }
+                }
+            },
+            'aegon': {
+                name: 'Эйгон',
+                episodes: {
+                    'aegon_1': {
+                        title: 'Nothing Comes for Free...',
+                        meta: 'конец 301 — Эйгон/Ида',
+                        players: [
+                            { name: 'Эйгон', done: false },
+                            { name: 'Ида', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'aegon_2': {
+                        title: 'as the curtain comes down',
+                        meta: '12-я луна 301 — Эйгон, Деймон, Серра',
+                        players: [
+                            { name: 'Эйгон', done: false },
+                            { name: 'Деймон', done: false },
+                            { name: 'Серра', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'aegon_3': {
+                        title: 'wellerman',
+                        meta: '302г от з.э. — Эйгон, Деймон, Алисса Веларион',
+                        players: [
+                            { name: 'Эйгон', done: false },
+                            { name: 'Деймон', done: false },
+                            { name: 'Алисса Веларион', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'aegon_4': {
+                        title: 'the allies',
+                        meta: 'начало 3го месяца 302 — Эйгон, Рос',
+                        players: [
+                            { name: 'Эйгон', done: false },
+                            { name: 'Рос', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'aegon_5': {
+                        title: 'по полям, по полям синий Эйгон едет к нам',
+                        meta: 'середина 3 мес. 302 З.Э. — дабл!Эйгон',
+                        players: [
+                            { name: 'Эйгон', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    }
+                }
+            },
+            'linessa': {
+                name: 'Линесса',
+                episodes: {
+                    'linessa_1': {
+                        title: 'So We Beat On, Boats Against the Current',
+                        meta: '288г от З.Э. — с Лукасом',
+                        players: [
+                            { name: 'Линесса', done: false },
+                            { name: 'Лукас', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'linessa_2': {
+                        title: 'Тени чужого рода',
+                        meta: 'конец 3 месяца 302 от з.э. — с Джолин',
+                        players: [
+                            { name: 'Линесса', done: false },
+                            { name: 'Джолин', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    }
+                }
+            }
+        }
+    };
+}
+
+// ================================================================
+// РЕНДЕРИНГ
+// ================================================================
+function renderSelects() {
+    if (!data) return;
+
+    const charVal = charSelect.value;
+    charSelect.innerHTML = '<option value="">— Выберите персонажа —</option>';
+    Object.keys(data.characters).forEach(id => {
+        const ch = data.characters[id];
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = ch.name;
+        charSelect.appendChild(opt);
+    });
+    if (charVal && data.characters[charVal]) {
+        charSelect.value = charVal;
+        currentChar = charVal;
+        renderEpisodes(charVal);
+    } else {
+        currentChar = null;
+        epList.innerHTML = '<div class="loading-w">Выберите персонажа</div>';
+    }
+}
+
+function renderEpisodes(charId) {
+    if (!data || !data.characters[charId]) {
+        epList.innerHTML = '<div class="loading-w">Персонаж не найден</div>';
+        return;
+    }
+
+    const ch = data.characters[charId];
+    const episodes = ch.episodes || {};
+    const keys = Object.keys(episodes);
+
+    if (keys.length === 0) {
+        epList.innerHTML = '<div class="empty-w">Нет эпизодов</div>';
+        return;
+    }
+
+    // Сортируем: сначала открытые, потом закрытые
+    keys.sort((a, b) => {
+        const closedA = episodes[a].closed ? 1 : 0;
+        const closedB = episodes[b].closed ? 1 : 0;
+        if (closedA !== closedB) return closedA - closedB;
+        return a.localeCompare(b);
+    });
+
+    let html = '';
+    keys.forEach(key => {
+        const ep = episodes[key];
+        const isClosed = ep.closed;
+        const isQuest = ep.quest;
+
+        // Кто следующий
+        let nextPlayer = null;
+        for (let p of ep.players) {
+            if (!p.done) {
+                nextPlayer = p;
+                break;
+            }
+        }
+
+        // Статус эпизода
+        let statusText = '🟢 Открыт';
+        let statusClass = '';
+        if (isClosed) {
+            statusText = '📌 Завершён';
+            statusClass = 'closed';
+        }
+        if (isQuest && !isClosed) {
+            statusText = '⭐ Квест';
+            statusClass = 'quest';
+        }
+
+        // Участники
+        let playersHtml = '';
+        ep.players.forEach(p => {
+            const doneClass = p.done ? 'done' : '';
+            const nextClass = (p === nextPlayer && !isClosed) ? 'next' : '';
+            playersHtml += `
+                <span class="p-tag ${doneClass} ${nextClass}">${p.name}</span>
+            `;
+        });
+
+        html += `
+            <div class="ep-card ${isClosed ? 'closed' : ''}">
+                <div class="ep-header">
+                    <div>
+                        <span class="ep-title">${ep.title}</span>
+                        ${isQuest && !isClosed ? '<span class="quest-badge">⭐ Квест</span>' : ''}
+                    </div>
+                    <span class="ep-status ${statusClass}">${statusText}</span>
+                </div>
+                ${ep.meta ? `<div class="ep-meta">${ep.meta}</div>` : ''}
+                <div class="ep-players">
+                    ${playersHtml || '<span style="color:#9ca3af;font-style:italic;font-size:0.8rem;">Нет участников</span>'}
+                </div>
+                ${isClosed && ep.result ? `<div style="font-size:0.75rem;color:#92400e;margin-top:4px;background:#fef3c7;padding:2px 8px;border-radius:4px;">📝 ${ep.result}</div>` : ''}
+            </div>
+        `;
+    });
+
+    epList.innerHTML = html;
+}
+
+// ================================================================
+// ОБРАБОТЧИК ВЫБОРА
+// ================================================================
+charSelect.addEventListener('change', function() {
+    const val = this.value;
+    if (val && data.characters[val]) {
+        currentChar = val;
+        renderEpisodes(val);
+    } else {
+        currentChar = null;
+        epList.innerHTML = '<div class="loading-w">Выберите персонажа</div>';
+    }
+});
+
+// ================================================================
+// ЗАПУСК
+// ================================================================
+loadData();
+</script>
+</body>
+</html>

@@ -192,25 +192,61 @@
         .btn-sm { padding: 3px 12px; font-size: 0.75rem; }
         .btn-danger { background: #ef4444; color: #ffffff; }
         .btn-danger:hover { background: #dc2626; }
+        .btn-danger-outline { background: transparent; border: 2px solid #ef4444; color: #ef4444; }
+        .btn-danger-outline:hover { background: #fee2e2; }
 
-        .add-forms {
-            display: flex; gap: 12px; flex-wrap: wrap;
-            margin: 12px 0 8px 0; padding: 12px 16px;
+        /* Форма добавления эпизода — отдельный блок с плюсиком */
+        .add-ep-block {
+            display: flex; gap: 10px; flex-wrap: wrap;
+            padding: 12px 16px; margin: 8px 0 12px 0;
             background: #ffffff; border-radius: 10px;
-            border: 2px dashed #e5e7eb;
+            border: 2px solid #e5e7eb;
+            align-items: center;
         }
-        .add-forms input {
+        .add-ep-block .add-label {
+            font-size: 0.8rem; font-weight: 600; color: #6b7280;
+            margin-right: 4px;
+        }
+        .add-ep-block input {
             padding: 6px 12px; border: 2px solid #e5e7eb; border-radius: 8px;
             font-size: 0.85rem; outline: none; font-family: inherit;
             background: #fafbfc; transition: 0.2s; flex: 1; min-width: 120px;
         }
-        .add-forms input:focus {
+        .add-ep-block input:focus {
             border-color: #4f46e5; background: #ffffff;
             box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
         }
-        .add-forms input::placeholder { color: #9ca3af; }
+        .add-ep-block input::placeholder { color: #9ca3af; }
+        .add-ep-block .btn-add-ep {
+            background: #4f46e5; color: #ffffff; border: none;
+            padding: 6px 18px; border-radius: 8px;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: 0.2s; font-family: inherit;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .add-ep-block .btn-add-ep:hover {
+            background: #4338ca; transform: scale(1.02);
+        }
 
-        /* Квест-фильтр */
+        /* Форма добавления участника */
+        .add-player-block {
+            display: flex; gap: 10px; flex-wrap: wrap;
+            padding: 8px 16px; margin: 0 0 12px 0;
+            background: #fafbfc; border-radius: 8px;
+            border: 1px dashed #e5e7eb;
+            align-items: center;
+        }
+        .add-player-block input {
+            padding: 5px 10px; border: 2px solid #e5e7eb; border-radius: 6px;
+            font-size: 0.85rem; outline: none; font-family: inherit;
+            background: #ffffff; transition: 0.2s; flex: 1; min-width: 100px;
+        }
+        .add-player-block input:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
+        }
+        .add-player-block input::placeholder { color: #9ca3af; }
+
         .quest-filter {
             display: flex; align-items: center; gap: 8px;
             margin-bottom: 8px; padding: 6px 12px;
@@ -263,6 +299,7 @@
             .players-vertical { gap: 4px; }
             .player-row { padding: 6px 10px; }
             .ep-display .ep-header { flex-direction: column; align-items: stretch; }
+            .add-ep-block { flex-direction: column; align-items: stretch; }
         }
         @media (max-width: 480px) {
             body { padding: 0.5rem; }
@@ -718,6 +755,8 @@ function renderCharPanel(charId) {
                     </label>
                 </div>
             </div>
+
+            <!-- ВЫПАДАЮЩИЙ СПИСОК -->
             <select class="ep-select" id="epSelect">
                 <option value="">— Выберите эпизод —</option>
                 ${openKeys.map(k => `
@@ -729,15 +768,19 @@ function renderCharPanel(charId) {
 
             ${epDisplay}
 
-            <div class="add-forms">
-                <input type="text" id="newEpTitle" placeholder="Название эпизода..." />
+            <!-- ФОРМА ДОБАВЛЕНИЯ ЭПИЗОДА — с плюсиком -->
+            <div class="add-ep-block">
+                <span class="add-label">➕ Новый эпизод</span>
+                <input type="text" id="newEpTitle" placeholder="Название..." />
                 <input type="text" id="newEpMeta" placeholder="Доп. информация..." />
-                <button class="btn btn-primary btn-sm" id="addEpBtn">➕ Добавить эпизод</button>
+                <button class="btn-add-ep" id="addEpBtn">➕</button>
             </div>
 
-            <div class="add-forms" style="margin-top:0;">
-                <input type="text" id="newPlayerName" placeholder="Имя участника..." />
-                <button class="btn btn-outline btn-sm" id="addPlayerBtn">➕ Добавить участника</button>
+            <!-- ФОРМА ДОБАВЛЕНИЯ УЧАСТНИКА -->
+            <div class="add-player-block">
+                <span style="font-size:0.8rem;color:#6b7280;">👤 Добавить участника:</span>
+                <input type="text" id="newPlayerName" placeholder="Имя..." />
+                <button class="btn btn-primary btn-sm" id="addPlayerBtn">➕</button>
             </div>
         </div>
     `;
@@ -775,6 +818,7 @@ function renderCharPanel(charId) {
         });
     }
 
+    // ДОБАВЛЕНИЕ ЭПИЗОДА — через отдельную форму с плюсиком
     const addEpBtn = document.getElementById('addEpBtn');
     const newEpTitle = document.getElementById('newEpTitle');
     const newEpMeta = document.getElementById('newEpMeta');
@@ -807,6 +851,7 @@ function renderCharPanel(charId) {
         });
     }
 
+    // ДОБАВЛЕНИЕ УЧАСТНИКА
     const addPlayerBtn = document.getElementById('addPlayerBtn');
     const newPlayerName = document.getElementById('newPlayerName');
     if (addPlayerBtn) {
@@ -860,9 +905,7 @@ function renderEpisodeDisplay(charId, epId) {
 
     const allDone = ep.players.length > 0 && ep.players.every(p => p.done);
 
-    // Квестовый маркер
     const questStatus = ep.quest ? 'active' : '';
-    const questText = ep.quest ? '⭐ Квест' : '⭐ Отметить квест';
 
     return `
         <div class="ep-display">
@@ -871,11 +914,12 @@ function renderEpisodeDisplay(charId, epId) {
                     <div class="ep-title">${ep.title}</div>
                     <div class="ep-meta">${ep.meta || ''}</div>
                 </div>
-                <div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span class="quest-badge ${questStatus}" id="questToggleBtn">
                         <span class="star">${ep.quest ? '⭐' : '☆'}</span>
                         ${ep.quest ? 'Квест' : 'Квест'}
                     </span>
+                    <button class="btn btn-danger-outline btn-sm" id="deleteEpBtn" title="Удалить эпизод">🗑</button>
                 </div>
             </div>
 
@@ -914,6 +958,30 @@ document.addEventListener('click', function(e) {
         ep.quest = !ep.quest;
         saveData();
         renderCharPanel(charId);
+    }
+
+    // Удаление эпизода
+    if (e.target.closest('#deleteEpBtn')) {
+        const btn = e.target.closest('#deleteEpBtn');
+        const container = btn.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep) return;
+        if (!confirm(`Удалить эпизод "${ep.title}"?`)) return;
+        delete data.characters[charId].episodes[epId];
+        if (selectedEp === epId) {
+            selectedEp = null;
+        }
+        saveData();
+        renderCharPanel(charId);
+        updateCounter();
     }
 
     // Чекбоксы

@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трекер долгов по постам</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .app-header h1 { font-size: 1.5rem; font-weight: 600; color: #1a1a2e; }
+        .app-header .status-group {
+            display: flex; align-items: center; gap: 1.2rem;
+            font-size: 0.85rem; color: #6b7280;
+        }
+        .status-dot {
+            display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+            margin-right: 6px; background: #d1d5db; transition: 0.3s;
+        }
+        .status-dot.online { background: #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.3); }
+        .status-dot.offline { background: #ef4444; }
+        .counter-badge {
+            background: #f3f4f6; padding: 0.3rem 1rem; border-radius: 40px;
+            font-size: 0.8rem; font-weight: 500; color: #374151;
+        }
+
+        .main-layout { display: flex; gap: 2rem; align-items: flex-start; }
+        .left-col { flex: 0 0 200px; min-width: 160px; }
+        .right-col { flex: 1; min-width: 0; }
+
+        .char-card {
+            background: #fafbfc; border: 2px solid #e5e7eb; border-radius: 12px;
+            padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: 0.2s;
+        }
+        .char-card:hover { background: #f3f4f6; border-color: #d1d5db; }
+        .char-card.active { border-color: #4f46e5; background: #eef2ff; }
+        .char-card .name { font-size: 1rem; font-weight: 600; }
+        .char-card .stats { font-size: 0.75rem; color: #6b7280; margin-top: 2px; }
+        .char-card .stats span { margin-right: 12px; }
+        .char-card .delete-char {
+            float: right; background: none; border: none; color: #d1d5db;
+            cursor: pointer; font-size: 0.9rem; transition: 0.2s; padding: 0 4px;
+        }
+        .char-card .delete-char:hover { color: #ef4444; }
+
+        .char-panel {
+            background: #fafbfc; border-radius: 12px; border: 2px solid #e5e7eb;
+            overflow: hidden; padding: 0;
+        }
+
+        .char-header {
+            display: flex; gap: 20px; padding: 20px 24px;
+            background: #ffffff; border-bottom: 2px solid #e5e7eb;
+            flex-wrap: wrap; align-items: center;
+        }
+        .char-avatar {
+            width: 80px; height: 80px; border-radius: 50%;
+            object-fit: cover; border: 3px solid #e5e7eb;
+            flex-shrink: 0; background: #f0f2f5;
+        }
+        .char-info { flex: 1; min-width: 150px; }
+        .char-info .char-name { font-size: 1.3rem; font-weight: 600; }
+        .char-info .char-desc { font-size: 0.9rem; color: #6b7280; margin-top: 2px; }
+        .char-info .char-stats {
+            font-size: 0.8rem; color: #6b7280; margin-top: 6px;
+        }
+        .char-info .char-stats span { margin-right: 16px; }
+
+        .panel-body { padding: 16px 20px; }
+
+        .section-title {
+            font-size: 0.8rem; font-weight: 600; color: #6b7280;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin: 16px 0 8px 0;
+        }
+        .section-title:first-of-type { margin-top: 0; }
+
+        .closed-list { display: flex; flex-wrap: wrap; gap: 6px; }
+        .closed-tag {
+            background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 20px;
+            padding: 4px 14px; font-size: 0.8rem; cursor: pointer;
+            transition: 0.2s; color: #374151;
+        }
+        .closed-tag:hover { background: #e5e7eb; }
+        .closed-tag.active { border-color: #4f46e5; background: #eef2ff; }
+        .closed-result {
+            margin-top: 8px; padding: 10px 14px; background: #fef3c7;
+            border-radius: 8px; font-size: 0.9rem; color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+        .closed-empty { color: #9ca3af; font-size: 0.85rem; font-style: italic; }
+
+        .ep-select {
+            width: 100%; padding: 10px 14px; border: 2px solid #e5e7eb;
+            border-radius: 10px; font-size: 0.95rem; background: #ffffff;
+            color: #1a1a2e; font-family: inherit; cursor: pointer;
+            outline: none; transition: 0.2s; margin-bottom: 12px;
+        }
+        .ep-select:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79,70,229,0.08); }
+
+        .ep-display {
+            background: #ffffff; border: 2px solid #e5e7eb; border-radius: 10px;
+            padding: 16px 20px; margin-top: 4px;
+        }
+        .ep-display .ep-header {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 8px; margin-bottom: 4px;
+        }
+        .ep-display .ep-title { font-size: 1.05rem; font-weight: 600; }
+        .ep-display .ep-meta { font-size: 0.85rem; color: #6b7280; margin-bottom: 12px; }
+
+        /* Квестовый маркер */
+        .quest-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: #fee2e2; color: #dc2626; font-weight: 700;
+            font-size: 0.7rem; padding: 2px 10px; border-radius: 20px;
+            border: 2px solid #dc2626; cursor: pointer; transition: 0.2s;
+            user-select: none; letter-spacing: 0.5px;
+        }
+        .quest-badge:hover { background: #fecaca; transform: scale(1.02); }
+        .quest-badge.active { background: #dc2626; color: #ffffff; border-color: #dc2626; }
+        .quest-badge .star { font-size: 0.8rem; }
+
+        .players-vertical {
+            display: flex; flex-direction: column; gap: 6px;
+            margin: 8px 0 12px 0;
+        }
+        .player-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 8px 12px; border-radius: 8px;
+            border: 2px solid transparent; background: #fafbfc;
+            transition: 0.2s;
+        }
+        .player-row.done { opacity: 0.4; text-decoration: line-through; color: #6b7280; }
+        .player-row.next {
+            border-color: #4f46e5; background: #eef2ff;
+            box-shadow: 0 2px 12px rgba(79,70,229,0.08);
+        }
+        .player-row .pname { flex: 1; font-size: 0.95rem; font-weight: 500; }
+        .player-row .pname.done-name { text-decoration: line-through; color: #6b7280; }
+        .player-row input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer;
+        }
+        .player-row input[type="checkbox"]:disabled { cursor: not-allowed; opacity: 0.5; }
+        .player-row .delete-player {
+            background: none; border: none; color: #d1d5db;
+            cursor: pointer; font-size: 0.9rem; transition: 0.2s; padding: 0 4px;
+        }
+        .player-row .delete-player:hover { color: #ef4444; }
+
+        .ep-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+        .btn {
+            padding: 6px 18px; border-radius: 8px; border: none;
+            font-size: 0.85rem; font-weight: 500; cursor: pointer;
+            transition: 0.2s; font-family: inherit;
+        }
+        .btn-primary { background: #4f46e5; color: #ffffff; }
+        .btn-primary:hover { background: #4338ca; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,0.25); }
+        .btn-success { background: #10b981; color: #ffffff; }
+        .btn-success:hover { background: #059669; transform: translateY(-1px); }
+        .btn-warning { background: #f59e0b; color: #ffffff; }
+        .btn-warning:hover { background: #d97706; transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 2px solid #e5e7eb; color: #374151; }
+        .btn-outline:hover { background: #f3f4f6; border-color: #d1d5db; }
+        .btn-sm { padding: 3px 12px; font-size: 0.75rem; }
+        .btn-danger { background: #ef4444; color: #ffffff; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .add-forms {
+            display: flex; gap: 12px; flex-wrap: wrap;
+            margin: 12px 0 8px 0; padding: 12px 16px;
+            background: #ffffff; border-radius: 10px;
+            border: 2px dashed #e5e7eb;
+        }
+        .add-forms input {
+            padding: 6px 12px; border: 2px solid #e5e7eb; border-radius: 8px;
+            font-size: 0.85rem; outline: none; font-family: inherit;
+            background: #fafbfc; transition: 0.2s; flex: 1; min-width: 120px;
+        }
+        .add-forms input:focus {
+            border-color: #4f46e5; background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
+        }
+        .add-forms input::placeholder { color: #9ca3af; }
+
+        /* Квест-фильтр */
+        .quest-filter {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 8px; padding: 6px 12px;
+            background: #fafbfc; border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .quest-filter label {
+            font-size: 0.8rem; color: #6b7280; cursor: pointer;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .quest-filter input[type="checkbox"] {
+            width: 16px; height: 16px; accent-color: #dc2626; cursor: pointer;
+        }
+
+        .hidden { display: none !important; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 999; opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: #ffffff; border-radius: 16px; padding: 24px;
+            max-width: 480px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        .modal-content h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+        .modal-content p { color: #6b7280; font-size: 0.9rem; margin-bottom: 12px; }
+        .modal-content textarea {
+            width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb;
+            border-radius: 10px; font-size: 0.9rem; font-family: inherit;
+            resize: vertical; min-height: 80px; margin-bottom: 12px;
+            outline: none; transition: 0.2s; background: #fafbfc;
+        }
+        .modal-content textarea:focus {
+            border-color: #4f46e5; background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
+        }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+        @media (max-width: 768px) {
+            .main-layout { flex-direction: column; }
+            .left-col { flex: 1; width: 100%; min-width: 0; }
+            .container { padding: 1.2rem 1rem; }
+            .char-card { display: inline-block; margin-right: 8px; margin-bottom: 8px; padding: 10px 14px; }
+            .char-card .stats { display: none; }
+            .char-header { flex-direction: column; align-items: center; text-align: center; }
+            .char-avatar { width: 60px; height: 60px; }
+            .players-vertical { gap: 4px; }
+            .player-row { padding: 6px 10px; }
+            .ep-display .ep-header { flex-direction: column; align-items: stretch; }
+        }
+        @media (max-width: 480px) {
+            body { padding: 0.5rem; }
+            .container { padding: 1rem 0.8rem; border-radius: 12px; }
+            .app-header h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="app-header">
+        <h1>📋 Трекер долгов по постам</h1>
+        <div class="status-group">
+            <span>
+                <span class="status-dot offline" id="statusDot"></span>
+                <span id="statusText">Подключение...</span>
+            </span>
+            <span class="counter-badge" id="counterBadge">0 эпизодов</span>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="left-col" id="charactersList"></div>
+        <div class="right-col">
+            <div class="char-panel" id="charPanel">
+                <div style="padding:40px 20px;text-align:center;color:#9ca3af;">
+                    👈 Выберите персонажа слева
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+        <h3>📝 Завершить эпизод</h3>
+        <p>Напишите итог эпизода (необязательно)</p>
+        <textarea id="modalComment" placeholder="Итог эпизода..."></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-outline" id="modalCancel">Отмена</button>
+            <button class="btn btn-success" id="modalConfirm">Завершить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ================================================================
+// КОНФИГ FIREBASE
+// ================================================================
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyARt1JxJWkCG7u9BS8LoeiEH4Dan18T8R0",
+    authDomain: "spisokdolgovados.firebaseapp.com",
+    databaseURL: "https://spisokdolgovados-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "spisokdolgovados",
+    storageBucket: "spisokdolgovados.firebasestorage.app",
+    messagingSenderId: "502720889875",
+    appId: "1:502720889875:web:230487eba236d913202be6"
+};
+// ================================================================
+
+// Инициализация Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+}
+const db = firebase.database();
+const DB_PATH = 'debtTracker';
+
+// Статус подключения
+db.ref('.info/connected').on('value', function(snap) {
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    if (snap.val()) {
+        dot.className = 'status-dot online';
+        text.textContent = 'Online';
+    } else {
+        dot.className = 'status-dot offline';
+        text.textContent = 'Offline';
+    }
+});
+
+// ================================================================
+// ДАННЫЕ
+// ================================================================
+let data = null;
+let selectedChar = null;
+let selectedEp = null;
+let selectedClosed = null;
+let modalTarget = null;
+let showOnlyQuests = false;
+
+// DOM
+const charactersList = document.getElementById('charactersList');
+const charPanel = document.getElementById('charPanel');
+const counterBadge = document.getElementById('counterBadge');
+const modalOverlay = document.getElementById('modalOverlay');
+const modalComment = document.getElementById('modalComment');
+const modalCancel = document.getElementById('modalCancel');
+const modalConfirm = document.getElementById('modalConfirm');
+
+// ================================================================
+// ЗАГРУЗКА / СОХРАНЕНИЕ
+// ================================================================
+function loadData() {
+    db.ref(DB_PATH).on('value', function(snapshot) {
+        const val = snapshot.val();
+        if (val) {
+            data = val;
+        } else {
+            data = getDefaultData();
+            db.ref(DB_PATH).set(data);
+        }
+        renderAll();
+    }, function(error) {
+        console.error('Ошибка загрузки:', error);
+    });
+}
+
+function saveData() {
+    if (data) {
+        db.ref(DB_PATH).set(data);
+    }
+}
+
+function getDefaultData() {
+    return {
+        characters: {
+            'triston': {
+                name: 'Тристон',
+                avatar: 'https://upforme.ru/uploads/001c/be/6c/86/236169.gif',
+                desc: '',
+                episodes: {
+                    'triston_1': {
+                        title: 'So, We\'ll Go No More a Roving',
+                        meta: '300 г. от З.Э. — Тристон и Роннел',
+                        players: [
+                            { name: 'Тристон', done: false },
+                            { name: 'Роннел', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'triston_2': {
+                        title: 'Shouldn\'t Have Wished To Live In More Interesting Times',
+                        meta: 'конец 301 — Тристон и Роннел',
+                        players: [
+                            { name: 'Тристон', done: false },
+                            { name: 'Роннел', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'triston_3': {
+                        title: 'May a star light your way',
+                        meta: 'начало 302-го от з.э. — Тристон и Эртур',
+                        players: [
+                            { name: 'Тристон', done: false },
+                            { name: 'Эртур', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    }
+                }
+            },
+            'aegon': {
+                name: 'Эйгон',
+                avatar: 'https://upforme.ru/uploads/001c/be/6c/86/136057.gif',
+                desc: '',
+                episodes: {
+                    'aegon_1': {
+                        title: 'Nothing Comes for Free...',
+                        meta: 'конец 301 — Эйгон/Ида',
+                        players: [
+                            { name: 'Эйгон', done: false },
+                            { name: 'Ида', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'aegon_2': {
+                        title: 'as the curtain comes down',
+                        meta: '12-я луна 301 — Эйгон, Деймон, Серра',
+                        players: [
+                            { name: 'Эйгон', done: false },
+                            { name: 'Деймон', done: false },
+                            { name: 'Серра', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'aegon_3': {
+                        title: 'wellerman',
+                        meta: '302г от з.э. — Эйгон, Деймон, Алисса Веларион',
+                        players: [
+                            { name: 'Эйгон', done: false },
+                            { name: 'Деймон', done: false },
+                            { name: 'Алисса Веларион', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'aegon_4': {
+                        title: 'the allies',
+                        meta: 'начало 3го месяца 302 — Эйгон, Рос',
+                        players: [
+                            { name: 'Эйгон', done: false },
+                            { name: 'Рос', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'aegon_5': {
+                        title: 'по полям, по полям синий Эйгон едет к нам',
+                        meta: 'середина 3 мес. 302 З.Э. — дабл!Эйгон',
+                        players: [
+                            { name: 'Эйгон', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    }
+                }
+            },
+            'linessa': {
+                name: 'Линесса',
+                avatar: 'https://upforme.ru/uploads/001c/be/6c/86/945267.gif',
+                desc: '',
+                episodes: {
+                    'linessa_1': {
+                        title: 'So We Beat On, Boats Against the Current',
+                        meta: '288г от З.Э. — с Лукасом',
+                        players: [
+                            { name: 'Линесса', done: false },
+                            { name: 'Лукас', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    },
+                    'linessa_2': {
+                        title: 'Тени чужого рода',
+                        meta: 'конец 3 месяца 302 от з.э. — с Джолин',
+                        players: [
+                            { name: 'Линесса', done: false },
+                            { name: 'Джолин', done: false }
+                        ],
+                        closed: false,
+                        result: '',
+                        quest: false
+                    }
+                }
+            }
+        }
+    };
+}
+
+// ================================================================
+// РЕНДЕРИНГ
+// ================================================================
+function renderAll() {
+    if (!data) return;
+    renderCharacters();
+    if (selectedChar && data.characters[selectedChar]) {
+        renderCharPanel(selectedChar);
+    } else {
+        charPanel.innerHTML = `
+            <div style="padding:40px 20px;text-align:center;color:#9ca3af;">
+                👈 Выберите персонажа слева
+            </div>
+        `;
+    }
+    updateCounter();
+}
+
+function updateCounter() {
+    if (!data) return;
+    let total = 0;
+    Object.keys(data.characters).forEach(id => {
+        total += Object.keys(data.characters[id].episodes || {}).length;
+    });
+    counterBadge.textContent = total + ' эпизодов';
+}
+
+// ================================================================
+// ПЕРСОНАЖИ (СЛЕВА)
+// ================================================================
+function renderCharacters() {
+    if (!data) return;
+    const chars = data.characters;
+    let html = '';
+    Object.keys(chars).forEach(function(id) {
+        const ch = chars[id];
+        const episodes = ch.episodes || {};
+        const keys = Object.keys(episodes);
+        const open = keys.filter(k => !episodes[k].closed).length;
+        const closed = keys.filter(k => episodes[k].closed).length;
+        const active = (selectedChar === id) ? ' active' : '';
+        html += `
+            <div class="char-card${active}" data-char="${id}">
+                <div class="name">
+                    ${ch.name}
+                    <button class="delete-char" data-char="${id}" title="Удалить персонажа">✕</button>
+                </div>
+                <div class="stats">
+                    <span>📖 ${open}</span>
+                    <span>✅ ${closed}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    html += `
+        <div style="margin-top:8px;display:flex;gap:6px;">
+            <input type="text" id="newCharName" placeholder="Имя..." style="flex:1;padding:6px 10px;border:2px solid #e5e7eb;border-radius:8px;font-size:0.85rem;outline:none;font-family:inherit;background:#fafbfc;">
+            <button class="btn btn-primary btn-sm" id="addCharBtn">➕</button>
+        </div>
+    `;
+
+    charactersList.innerHTML = html;
+
+    document.querySelectorAll('.char-card').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            if (e.target.closest('.delete-char')) return;
+            const id = this.dataset.char;
+            selectCharacter(id);
+        });
+    });
+
+    document.querySelectorAll('.delete-char').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const id = this.dataset.char;
+            if (!confirm(`Удалить персонажа "${data.characters[id].name}"?`)) return;
+            delete data.characters[id];
+            if (selectedChar === id) {
+                selectedChar = null;
+                selectedEp = null;
+                selectedClosed = null;
+            }
+            saveData();
+            renderAll();
+        });
+    });
+
+    const addBtn = document.getElementById('addCharBtn');
+    const input = document.getElementById('newCharName');
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            const name = input.value.trim();
+            if (!name) return;
+            const id = name.toLowerCase().replace(/[^a-zа-я]/g, '');
+            if (data.characters[id]) {
+                alert('Персонаж с таким именем уже есть');
+                return;
+            }
+            data.characters[id] = {
+                name: name,
+                avatar: '',
+                desc: '',
+                episodes: {}
+            };
+            input.value = '';
+            saveData();
+            renderAll();
+            selectCharacter(id);
+        });
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') addBtn.click();
+        });
+    }
+}
+
+// ================================================================
+// ПАНЕЛЬ ПЕРСОНАЖА (СПРАВА)
+// ================================================================
+function selectCharacter(id) {
+    selectedChar = id;
+    selectedEp = null;
+    selectedClosed = null;
+    renderAll();
+}
+
+function renderCharPanel(charId) {
+    if (!data) return;
+    const ch = data.characters[charId];
+    if (!ch) return;
+
+    const episodes = ch.episodes || {};
+    const keys = Object.keys(episodes);
+    let openKeys = keys.filter(k => !episodes[k].closed);
+    let closedKeys = keys.filter(k => episodes[k].closed);
+
+    // Фильтр по квестам
+    if (showOnlyQuests) {
+        openKeys = openKeys.filter(k => episodes[k].quest === true);
+    }
+
+    let epDisplay = '';
+    if (selectedEp && episodes[selectedEp] && !episodes[selectedEp].closed) {
+        epDisplay = renderEpisodeDisplay(charId, selectedEp);
+    }
+
+    let closedResult = '';
+    if (selectedClosed && episodes[selectedClosed] && episodes[selectedClosed].closed) {
+        const ep = episodes[selectedClosed];
+        closedResult = `
+            <div class="closed-result">
+                <strong>${ep.title}</strong><br>
+                ${ep.result || 'Без комментария'}
+            </div>
+        `;
+    }
+
+    const html = `
+        <div class="char-header">
+            <img class="char-avatar" src="${ch.avatar || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect width=%2280%22 height=%2280%22 fill=%22%23e5e7eb%22/%3E%3Ctext x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%239ca3af%22 font-size=%2230%22 font-family=%22sans-serif%22%3E👤%3C/text%3E%3C/svg%3E'}" alt="avatar">
+            <div class="char-info">
+                <div class="char-name">${ch.name}</div>
+                <div class="char-desc">${ch.desc || ''}</div>
+                <div class="char-stats">
+                    <span>📖 ${openKeys.length} открытых</span>
+                    <span>✅ ${closedKeys.length} завершённых</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-body">
+            <div class="section-title">✅ Завершённые эпизоды</div>
+            <div class="closed-list" id="closedList">
+                ${closedKeys.length === 0 ? '<span class="closed-empty">Нет завершённых эпизодов</span>' : ''}
+                ${closedKeys.map(k => `
+                    <span class="closed-tag ${selectedClosed === k ? 'active' : ''}" data-ep="${k}">
+                        ${episodes[k].title}
+                        ${episodes[k].quest ? ' ⭐' : ''}
+                    </span>
+                `).join('')}
+            </div>
+            ${closedResult}
+
+            <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <span>🎯 Активные эпизоды</span>
+                <div class="quest-filter">
+                    <label>
+                        <input type="checkbox" id="questFilterCheck" ${showOnlyQuests ? 'checked' : ''}>
+                        ⭐ Только квесты
+                    </label>
+                </div>
+            </div>
+            <select class="ep-select" id="epSelect">
+                <option value="">— Выберите эпизод —</option>
+                ${openKeys.map(k => `
+                    <option value="${k}" ${selectedEp === k ? 'selected' : ''}>
+                        ${episodes[k].title} ${episodes[k].quest ? '⭐' : ''}
+                    </option>
+                `).join('')}
+            </select>
+
+            ${epDisplay}
+
+            <div class="add-forms">
+                <input type="text" id="newEpTitle" placeholder="Название эпизода..." />
+                <input type="text" id="newEpMeta" placeholder="Доп. информация..." />
+                <button class="btn btn-primary btn-sm" id="addEpBtn">➕ Добавить эпизод</button>
+            </div>
+
+            <div class="add-forms" style="margin-top:0;">
+                <input type="text" id="newPlayerName" placeholder="Имя участника..." />
+                <button class="btn btn-outline btn-sm" id="addPlayerBtn">➕ Добавить участника</button>
+            </div>
+        </div>
+    `;
+
+    charPanel.innerHTML = html;
+
+    // ============================================================
+    // ОБРАБОТЧИКИ
+    // ============================================================
+
+    // Фильтр квестов
+    const filterCheck = document.getElementById('questFilterCheck');
+    if (filterCheck) {
+        filterCheck.addEventListener('change', function() {
+            showOnlyQuests = this.checked;
+            renderCharPanel(charId);
+        });
+    }
+
+    document.querySelectorAll('.closed-tag').forEach(function(el) {
+        el.addEventListener('click', function() {
+            const ep = this.dataset.ep;
+            selectedClosed = (selectedClosed === ep) ? null : ep;
+            selectedEp = null;
+            renderCharPanel(charId);
+        });
+    });
+
+    const epSelect = document.getElementById('epSelect');
+    if (epSelect) {
+        epSelect.addEventListener('change', function() {
+            selectedEp = this.value || null;
+            selectedClosed = null;
+            renderCharPanel(charId);
+        });
+    }
+
+    const addEpBtn = document.getElementById('addEpBtn');
+    const newEpTitle = document.getElementById('newEpTitle');
+    const newEpMeta = document.getElementById('newEpMeta');
+    if (addEpBtn) {
+        addEpBtn.addEventListener('click', function() {
+            const title = newEpTitle.value.trim();
+            if (!title) { alert('Введите название эпизода'); return; }
+            const meta = newEpMeta.value.trim();
+            const id = charId + '_' + Date.now();
+            ch.episodes[id] = {
+                title: title,
+                meta: meta,
+                players: [],
+                closed: false,
+                result: '',
+                quest: false
+            };
+            newEpTitle.value = '';
+            newEpMeta.value = '';
+            selectedEp = id;
+            saveData();
+            renderCharPanel(charId);
+            updateCounter();
+        });
+        newEpTitle.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') addEpBtn.click();
+        });
+        newEpMeta.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') addEpBtn.click();
+        });
+    }
+
+    const addPlayerBtn = document.getElementById('addPlayerBtn');
+    const newPlayerName = document.getElementById('newPlayerName');
+    if (addPlayerBtn) {
+        addPlayerBtn.addEventListener('click', function() {
+            if (!selectedEp) { alert('Сначала выберите эпизод'); return; }
+            const name = newPlayerName.value.trim();
+            if (!name) { alert('Введите имя участника'); return; }
+            const ep = ch.episodes[selectedEp];
+            if (ep.closed) { alert('Эпизод уже завершён'); return; }
+            ep.players.push({ name: name, done: false });
+            newPlayerName.value = '';
+            saveData();
+            renderCharPanel(charId);
+        });
+        newPlayerName.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') addPlayerBtn.click();
+        });
+    }
+}
+
+// ================================================================
+// ОТОБРАЖЕНИЕ ЭПИЗОДА
+// ================================================================
+function renderEpisodeDisplay(charId, epId) {
+    if (!data) return '';
+    const ch = data.characters[charId];
+    const ep = ch.episodes[epId];
+    if (!ep || ep.closed) return '';
+
+    let nextPlayer = null;
+    for (let p of ep.players) {
+        if (!p.done) {
+            nextPlayer = p;
+            break;
+        }
+    }
+
+    let playersHtml = '';
+    ep.players.forEach(function(p, idx) {
+        const doneClass = p.done ? 'done' : '';
+        const nextClass = (p === nextPlayer) ? 'next' : '';
+        const checked = p.done ? 'checked' : '';
+        playersHtml += `
+            <div class="player-row ${doneClass} ${nextClass}">
+                <input type="checkbox" ${checked} data-pidx="${idx}">
+                <span class="pname ${p.done ? 'done-name' : ''}">${p.name}</span>
+                <button class="delete-player" data-pidx="${idx}" title="Удалить">✕</button>
+            </div>
+        `;
+    });
+
+    const allDone = ep.players.length > 0 && ep.players.every(p => p.done);
+
+    // Квестовый маркер
+    const questStatus = ep.quest ? 'active' : '';
+    const questText = ep.quest ? '⭐ Квест' : '⭐ Отметить квест';
+
+    return `
+        <div class="ep-display">
+            <div class="ep-header">
+                <div>
+                    <div class="ep-title">${ep.title}</div>
+                    <div class="ep-meta">${ep.meta || ''}</div>
+                </div>
+                <div>
+                    <span class="quest-badge ${questStatus}" id="questToggleBtn">
+                        <span class="star">${ep.quest ? '⭐' : '☆'}</span>
+                        ${ep.quest ? 'Квест' : 'Квест'}
+                    </span>
+                </div>
+            </div>
+
+            <div class="players-vertical" id="playersContainer">
+                ${playersHtml || '<div style="color:#9ca3af;font-style:italic;padding:8px 0;">Нет участников</div>'}
+            </div>
+
+            <div class="ep-actions">
+                ${allDone ? `<button class="btn btn-success btn-sm" id="finishRoundBtn">🔄 Завершить круг</button>` : ''}
+                <button class="btn btn-warning btn-sm" id="closeEpBtn">📌 Завершить эпизод</button>
+            </div>
+        </div>
+    `;
+}
+
+// ================================================================
+// ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
+// ================================================================
+document.addEventListener('click', function(e) {
+    if (!data) return;
+
+    // Переключение квеста
+    if (e.target.closest('#questToggleBtn')) {
+        const btn = e.target.closest('#questToggleBtn');
+        const container = btn.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep || ep.closed) return;
+        ep.quest = !ep.quest;
+        saveData();
+        renderCharPanel(charId);
+    }
+
+    // Чекбоксы
+    if (e.target.closest('.player-row input[type="checkbox"]')) {
+        const cb = e.target;
+        const row = cb.closest('.player-row');
+        const container = row.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const pidx = parseInt(cb.dataset.pidx);
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep || ep.closed) return;
+        ep.players[pidx].done = cb.checked;
+        saveData();
+        renderCharPanel(charId);
+    }
+
+    // Удаление участника
+    if (e.target.closest('.delete-player')) {
+        const btn = e.target;
+        const row = btn.closest('.player-row');
+        const container = row.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const pidx = parseInt(btn.dataset.pidx);
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep || ep.closed) return;
+        if (!confirm(`Удалить участника "${ep.players[pidx].name}"?`)) return;
+        ep.players.splice(pidx, 1);
+        saveData();
+        renderCharPanel(charId);
+    }
+
+    // Завершить круг
+    if (e.target.closest('#finishRoundBtn')) {
+        const btn = e.target;
+        const container = btn.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep || ep.closed) return;
+        ep.players.forEach(p => p.done = false);
+        saveData();
+        renderCharPanel(charId);
+    }
+
+    // Завершить эпизод
+    if (e.target.closest('#closeEpBtn')) {
+        const btn = e.target;
+        const container = btn.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        modalTarget = { charId, epId };
+        modalComment.value = '';
+        modalOverlay.classList.add('visible');
+        setTimeout(function() { modalComment.focus(); }, 100);
+    }
+});
+
+// ================================================================
+// МОДАЛКА
+// ================================================================
+modalCancel.addEventListener('click', function() {
+    modalOverlay.classList.remove('visible');
+    modalTarget = null;
+});
+
+modalConfirm.addEventListener('click', function() {
+    if (!modalTarget) return;
+    const { charId, epId } = modalTarget;
+    const comment = modalComment.value.trim();
+    const ep = data.characters[charId].episodes[epId];
+    if (!ep) return;
+    ep.closed = true;
+    ep.result = comment || '';
+    ep.players.forEach(p => p.done = false);
+    saveData();
+    modalOverlay.classList.remove('visible');
+    modalTarget = null;
+    selectedEp = null;
+    renderCharPanel(charId);
+    updateCounter();
+});
+
+modalOverlay.addEventListener('click', function(e) {
+    if (e.target === modalOverlay) {
+        modalOverlay.classList.remove('visible');
+        modalTarget = null;
+    }
+});
+
+// ================================================================
+// ЗАПУСК
+// ================================================================
+loadData();
+</script>
+</body>
+</html>
+```
+
+</BDS:LONG_WORK>
+
+---
+
+## ✅ **Что добавлено:**
+
+| Фича ↕▾ | Описание ↕▾ |
+|---|---|
+| −**Квестовый маркер ⭐** | Красный заметный бейдж у каждого эпизода. Клик — переключает статус "квест". |
+| **Фильтр "Только квесты"** | Чекбокс в разделе активных эпизодов — показывает только эпизоды с пометкой ⭐ |
+| **Картинки персонажей** | Тристон, Эйгон, Линесса — аватарки подгружаются из ваших ссылок |
+| **Маркер в списках** | В выпадающем списке и в завершённых эпизодах рядом с названием стоит ⭐, если эпизод помечен как квест |
+⚙
+
+---
+
+**Загружайте на GitHub Pages — всё готово!** 🚀

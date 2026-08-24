@@ -129,11 +129,27 @@
             padding: 16px 20px; margin-top: 4px;
         }
         .ep-display .ep-header {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: flex-start;
             flex-wrap: wrap; gap: 8px; margin-bottom: 4px;
         }
         .ep-display .ep-title { font-size: 1.05rem; font-weight: 600; }
-        .ep-display .ep-meta { font-size: 0.85rem; color: #6b7280; margin-bottom: 12px; }
+        .ep-display .ep-meta { font-size: 0.85rem; color: #6b7280; margin-bottom: 4px; }
+        .ep-display .ep-link {
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+        .ep-display .ep-link a {
+            color: #4f46e5;
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .ep-display .ep-link a:hover {
+            text-decoration: underline;
+        }
+        .ep-display .ep-link .link-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
 
         .quest-badge {
             display: inline-flex; align-items: center; gap: 4px;
@@ -427,7 +443,7 @@
         .queue-block .queue-char { font-weight: 500; }
         .queue-block .queue-ep { color: #6b7280; font-size: 0.85rem; }
 
-        /* Отдельный блок очереди справа */
+        /* Глобальный блок очереди */
         .global-queue-block {
             background: #fef9e7;
             border: 2px solid #f59e0b;
@@ -502,9 +518,7 @@
     <div class="main-layout">
         <div class="left-col" id="charactersList"></div>
         <div class="right-col">
-            <!-- Глобальный блок очереди -->
             <div id="globalQueueBlock"></div>
-            
             <div class="char-panel" id="charPanel">
                 <div style="padding:40px 20px;text-align:center;color:#9ca3af;">
                     👈 Выберите персонажа слева
@@ -532,6 +546,9 @@
 
         <label for="addEpMeta">Дополнительная информация</label>
         <input type="text" id="addEpMeta" placeholder="Например: 302г от з.э. — Эйгон, Деймон, Алисса Веларион" />
+
+        <label for="addEpLink">Ссылка на эпизод</label>
+        <input type="text" id="addEpLink" placeholder="https://example.com/episode" />
 
         <label for="addEpPlayers">Участники</label>
         <textarea id="addEpPlayers" placeholder="Каждый участник с новой строки&#10;Например:&#10;Эйгон&#10;Деймон&#10;Алисса Веларион"></textarea>
@@ -623,6 +640,7 @@ const modalAddEp = document.getElementById('modalAddEp');
 const addEpCharSelect = document.getElementById('addEpCharSelect');
 const addEpTitle = document.getElementById('addEpTitle');
 const addEpMeta = document.getElementById('addEpMeta');
+const addEpLink = document.getElementById('addEpLink');
 const addEpPlayers = document.getElementById('addEpPlayers');
 const addEpQuest = document.getElementById('addEpQuest');
 const addEpCancel = document.getElementById('addEpCancel');
@@ -637,6 +655,15 @@ function loadData() {
         const val = snapshot.val();
         if (val) {
             data = val;
+            // Для старых эпизодов без link добавляем пустую строку
+            Object.keys(data.characters || {}).forEach(charId => {
+                const ch = data.characters[charId];
+                Object.keys(ch.episodes || {}).forEach(epId => {
+                    if (!ch.episodes[epId].hasOwnProperty('link')) {
+                        ch.episodes[epId].link = '';
+                    }
+                });
+            });
         } else {
             data = getDefaultData();
             db.ref(DB_PATH).set(data);
@@ -672,7 +699,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     },
                     'triston_2': {
                         title: 'Shouldn\'t Have Wished To Live In More Interesting Times',
@@ -683,7 +711,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     },
                     'triston_3': {
                         title: 'May a star light your way',
@@ -694,7 +723,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     }
                 }
             },
@@ -712,7 +742,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     },
                     'aegon_2': {
                         title: 'as the curtain comes down',
@@ -724,7 +755,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     },
                     'aegon_3': {
                         title: 'wellerman',
@@ -736,7 +768,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     },
                     'aegon_4': {
                         title: 'the allies',
@@ -747,7 +780,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     },
                     'aegon_5': {
                         title: 'по полям, по полям синий Эйгон едет к нам',
@@ -757,7 +791,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     }
                 }
             },
@@ -775,7 +810,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     },
                     'linessa_2': {
                         title: 'Тени чужого рода',
@@ -786,7 +822,8 @@ function getDefaultData() {
                         ],
                         closed: false,
                         result: '',
-                        quest: false
+                        quest: false,
+                        link: ''
                     }
                 }
             }
@@ -845,10 +882,10 @@ function updateAddEpSelect() {
 // ================================================================
 function renderGlobalQueue() {
     if (!data) return;
-    
+
     const targetChars = ['Эйгон', 'Линесса', 'Тристон'];
     const queueItems = [];
-    
+
     Object.keys(data.characters).forEach(charId => {
         const ch = data.characters[charId];
         const episodes = ch.episodes || {};
@@ -868,10 +905,9 @@ function renderGlobalQueue() {
             }
         });
     });
-    
-    // Сортируем по имени персонажа
+
     queueItems.sort((a, b) => a.charName.localeCompare(b.charName));
-    
+
     let html = '';
     if (queueItems.length > 0) {
         html = `
@@ -893,10 +929,9 @@ function renderGlobalQueue() {
             </div>
         `;
     }
-    
+
     globalQueueBlock.innerHTML = html;
-    
-    // Обработчики кликов для перехода к эпизоду
+
     document.querySelectorAll('#globalQueueBlock .queue-item').forEach(el => {
         el.addEventListener('click', function() {
             const charId = this.dataset.char;
@@ -1021,12 +1056,11 @@ function renderCharPanel(charId) {
     let openKeys = keys.filter(k => !episodes[k].closed);
     let closedKeys = keys.filter(k => episodes[k].closed);
 
-    // Фильтр квестов
     if (showOnlyQuests) {
         openKeys = openKeys.filter(k => episodes[k].quest === true);
     }
 
-    // ===== БЛОК ОЧЕРЕДИ ВНУТРИ ПЕРСОНАЖА =====
+    // Блок очереди внутри персонажа
     let queueHtml = '';
     const queueItems = [];
     openKeys.forEach(k => {
@@ -1042,7 +1076,7 @@ function renderCharPanel(charId) {
     });
     const targetChars = ['Эйгон', 'Линесса', 'Тристон'];
     const filteredQueue = queueItems.filter(item => targetChars.includes(item.charName));
-    
+
     if (filteredQueue.length > 0) {
         queueHtml = `
             <div class="queue-block">
@@ -1073,7 +1107,6 @@ function renderCharPanel(charId) {
         `;
     }
 
-    // Кнопка удаления пустых эпизодов
     const emptyEpisodes = openKeys.filter(k => episodes[k].players.length === 0);
     const deleteEmptyBtn = emptyEpisodes.length > 0 ? `
         <button class="btn btn-danger-outline btn-sm" id="deleteEmptyEpisodesBtn" style="margin-left:8px;">
@@ -1149,7 +1182,6 @@ function renderCharPanel(charId) {
     // ОБРАБОТЧИКИ
     // ============================================================
 
-    // Удаление пустых эпизодов
     const deleteEmptyBtnEl = document.getElementById('deleteEmptyEpisodesBtn');
     if (deleteEmptyBtnEl) {
         deleteEmptyBtnEl.addEventListener('click', function() {
@@ -1194,7 +1226,6 @@ function renderCharPanel(charId) {
         });
     }
 
-    // Добавление участника
     const addPlayerBtn = document.getElementById('addPlayerBtn');
     const newPlayerName = document.getElementById('newPlayerName');
     if (addPlayerBtn) {
@@ -1263,12 +1294,21 @@ function renderEpisodeDisplay(charId, epId) {
 
     const questStatus = ep.quest ? 'active' : '';
 
+    // Ссылка на эпизод
+    const linkHtml = ep.link ? `
+        <div class="ep-link">
+            <span class="link-label">🔗 Ссылка:</span>
+            <a href="${ep.link}" target="_blank" rel="noopener noreferrer">${ep.link}</a>
+        </div>
+    ` : '';
+
     return `
         <div class="ep-display">
             <div class="ep-header">
                 <div>
                     <div class="ep-title">${ep.title}</div>
                     <div class="ep-meta">${ep.meta || ''}</div>
+                    ${linkHtml}
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span class="quest-badge ${questStatus}" id="questToggleBtn">
@@ -1286,9 +1326,26 @@ function renderEpisodeDisplay(charId, epId) {
             <div class="ep-actions">
                 ${allDone ? `<button class="btn btn-success btn-sm" id="finishRoundBtn">🔄 Завершить круг</button>` : ''}
                 <button class="btn btn-warning btn-sm" id="closeEpBtn">📌 Завершить эпизод</button>
+                <button class="btn btn-outline btn-sm" id="editLinkBtn">✏️ Редактировать ссылку</button>
             </div>
         </div>
     `;
+}
+
+// ================================================================
+// МОДАЛКА РЕДАКТИРОВАНИЯ ССЫЛКИ
+// ================================================================
+function showEditLinkModal(charId, epId) {
+    const ep = data.characters[charId].episodes[epId];
+    if (!ep) return;
+
+    const currentLink = ep.link || '';
+    const newLink = prompt('Введите ссылку на эпизод:', currentLink);
+    if (newLink === null) return; // Отмена
+
+    ep.link = newLink.trim();
+    saveData();
+    renderCharPanel(charId);
 }
 
 // ================================================================
@@ -1297,6 +1354,7 @@ function renderEpisodeDisplay(charId, epId) {
 function openAddEpModal() {
     addEpTitle.value = '';
     addEpMeta.value = '';
+    addEpLink.value = '';
     addEpPlayers.value = '';
     addEpQuest.checked = false;
     if (selectedChar && data.characters[selectedChar]) {
@@ -1332,6 +1390,7 @@ addEpConfirm.addEventListener('click', function() {
         return;
     }
     const meta = addEpMeta.value.trim();
+    const link = addEpLink.value.trim();
     const playersText = addEpPlayers.value.trim();
     const players = playersText ? playersText.split('\n').map(s => s.trim()).filter(s => s) : [];
     const quest = addEpQuest.checked;
@@ -1340,6 +1399,7 @@ addEpConfirm.addEventListener('click', function() {
     data.characters[charId].episodes[id] = {
         title: title,
         meta: meta,
+        link: link,
         players: players.map(name => ({ name: name, done: false })),
         closed: false,
         result: '',
@@ -1360,6 +1420,21 @@ addEpConfirm.addEventListener('click', function() {
 document.addEventListener('click', function(e) {
     if (!data) return;
 
+    // Редактирование ссылки
+    if (e.target.closest('#editLinkBtn')) {
+        const btn = e.target.closest('#editLinkBtn');
+        const container = btn.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+        showEditLinkModal(charId, epId);
+        return;
+    }
+
     // Переключение квеста
     if (e.target.closest('#questToggleBtn')) {
         const btn = e.target.closest('#questToggleBtn');
@@ -1377,6 +1452,7 @@ document.addEventListener('click', function(e) {
         ep.quest = !ep.quest;
         saveData();
         renderCharPanel(charId);
+        return;
     }
 
     // Удаление эпизода
@@ -1401,6 +1477,7 @@ document.addEventListener('click', function(e) {
         saveData();
         renderCharPanel(charId);
         updateCounter();
+        return;
     }
 
     // Чекбоксы
@@ -1422,6 +1499,7 @@ document.addEventListener('click', function(e) {
         ep.players[pidx].done = cb.checked;
         saveData();
         renderCharPanel(charId);
+        return;
     }
 
     // Удаление участника
@@ -1444,6 +1522,7 @@ document.addEventListener('click', function(e) {
         ep.players.splice(pidx, 1);
         saveData();
         renderCharPanel(charId);
+        return;
     }
 
     // Завершить круг
@@ -1463,6 +1542,7 @@ document.addEventListener('click', function(e) {
         ep.players.forEach(p => p.done = false);
         saveData();
         renderCharPanel(charId);
+        return;
     }
 
     // Завершить эпизод
@@ -1481,6 +1561,7 @@ document.addEventListener('click', function(e) {
         modalComment.value = '';
         modalOverlay.classList.add('visible');
         setTimeout(function() { modalComment.focus(); }, 100);
+        return;
     }
 });
 

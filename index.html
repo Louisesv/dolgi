@@ -417,32 +417,6 @@
         }
         .modal-overlay .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-        /* Блок очереди */
-        .queue-block {
-            background: #f0f7ff;
-            border: 2px solid #4f46e5;
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-        }
-        .queue-block .queue-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #4f46e5;
-            margin-bottom: 6px;
-        }
-        .queue-block .queue-item {
-            font-size: 0.9rem;
-            padding: 4px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .queue-block .queue-item:last-child { border-bottom: none; }
-        .queue-block .queue-char { font-weight: 500; }
-        .queue-block .queue-ep { color: #6b7280; font-size: 0.85rem; }
-
         /* Глобальный блок очереди */
         .global-queue-block {
             background: #fef9e7;
@@ -471,9 +445,31 @@
             transition: 0.2s;
         }
         .global-queue-block .queue-item:last-child { border-bottom: none; }
-        .global-queue-block .queue-item:hover { background: #fef3c7; margin: 0 -4px; padding: 4px; border-radius: 4px; }
-        .global-queue-block .queue-char { font-weight: 500; color: #1a1a2e; }
-        .global-queue-block .queue-ep { color: #6b7280; font-size: 0.85rem; }
+        .global-queue-block .queue-item:hover {
+            background: #fef3c7;
+            margin: 0 -4px;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .global-queue-block .queue-char {
+            font-weight: 500;
+            color: #1a1a2e;
+        }
+        .global-queue-block .queue-ep {
+            color: #4f46e5;
+            font-size: 0.85rem;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .global-queue-block .queue-ep:hover {
+            color: #4338ca;
+        }
+        .global-queue-block .queue-ep a {
+            color: inherit;
+            text-decoration: none;
+        }
         .global-queue-block .queue-empty {
             color: #9ca3af;
             font-style: italic;
@@ -899,6 +895,7 @@ function renderGlobalQueue() {
                         charId: charId,
                         epTitle: ep.title,
                         epId: epId,
+                        epLink: ep.link || '',
                         nextPlayer: nextPlayer.name
                     });
                 }
@@ -913,12 +910,21 @@ function renderGlobalQueue() {
         html = `
             <div class="global-queue-block">
                 <div class="queue-title">⏳ Очередь персонажей</div>
-                ${queueItems.map(item => `
-                    <div class="queue-item" data-char="${item.charId}" data-ep="${item.epId}">
-                        <span class="queue-char">${item.charName}</span>
-                        <span class="queue-ep">${item.epTitle}</span>
-                    </div>
-                `).join('')}
+                ${queueItems.map(item => {
+                    const link = item.epLink || '#';
+                    const isLink = item.epLink && item.epLink.trim() !== '';
+                    return `
+                        <div class="queue-item" data-char="${item.charId}" data-ep="${item.epId}">
+                            <span class="queue-char">${item.charName}</span>
+                            <span class="queue-ep">
+                                ${isLink
+                                    ? `<a href="${item.epLink}" target="_blank" rel="noopener noreferrer">${item.epTitle}</a>`
+                                    : `<span style="color:#6b7280;text-decoration:none;cursor:default;">${item.epTitle}</span>`
+                                }
+                            </span>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         `;
     } else {
@@ -932,17 +938,21 @@ function renderGlobalQueue() {
 
     globalQueueBlock.innerHTML = html;
 
+    // Обработчики кликов для перехода к эпизоду (если нет ссылки)
     document.querySelectorAll('#globalQueueBlock .queue-item').forEach(el => {
-        el.addEventListener('click', function() {
-            const charId = this.dataset.char;
-            const epId = this.dataset.ep;
-            if (charId && epId) {
-                selectedChar = charId;
-                selectedEp = epId;
-                selectedClosed = null;
-                renderAll();
-            }
-        });
+        const epLink = el.querySelector('.queue-ep a');
+        if (!epLink) {
+            el.addEventListener('click', function() {
+                const charId = this.dataset.char;
+                const epId = this.dataset.ep;
+                if (charId && epId) {
+                    selectedChar = charId;
+                    selectedEp = epId;
+                    selectedClosed = null;
+                    renderAll();
+                }
+            });
+        }
     });
 }
 
@@ -1060,37 +1070,6 @@ function renderCharPanel(charId) {
         openKeys = openKeys.filter(k => episodes[k].quest === true);
     }
 
-    // Блок очереди внутри персонажа
-    let queueHtml = '';
-    const queueItems = [];
-    openKeys.forEach(k => {
-        const ep = episodes[k];
-        const nextPlayer = ep.players.find(p => !p.done);
-        if (nextPlayer) {
-            queueItems.push({
-                charName: nextPlayer.name,
-                epTitle: ep.title,
-                epId: k
-            });
-        }
-    });
-    const targetChars = ['Эйгон', 'Линесса', 'Тристон'];
-    const filteredQueue = queueItems.filter(item => targetChars.includes(item.charName));
-
-    if (filteredQueue.length > 0) {
-        queueHtml = `
-            <div class="queue-block">
-                <div class="queue-title">👥 Очередь персонажей (в этом эпизоде)</div>
-                ${filteredQueue.map(item => `
-                    <div class="queue-item">
-                        <span class="queue-char">${item.charName}</span>
-                        <span class="queue-ep">${item.epTitle}</span>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }
-
     let epDisplay = '';
     if (selectedEp && episodes[selectedEp] && !episodes[selectedEp].closed) {
         epDisplay = renderEpisodeDisplay(charId, selectedEp);
@@ -1128,8 +1107,6 @@ function renderCharPanel(charId) {
         </div>
 
         <div class="panel-body">
-            ${queueHtml}
-
             <div class="section-title">✅ Завершённые эпизоды</div>
             <div class="closed-list" id="closedList">
                 ${closedKeys.length === 0 ? '<span class="closed-empty">Нет завершённых эпизодов</span>' : ''}
@@ -1458,6 +1435,96 @@ document.addEventListener('click', function(e) {
     // Удаление эпизода
     if (e.target.closest('#deleteEpBtn')) {
         const btn = e.target.closest('#deleteEpBtn');
+        const container = btn.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep) return;
+        if (!confirm(`Удалить эпизод "${ep.title}"?`)) return;
+        delete data.characters[charId].episodes[epId];
+        if (selectedEp === epId) {
+            selectedEp = null;
+        }
+        saveData();
+        renderCharPanel(charId);
+        updateCounter();
+        return;
+    }
+
+    // Чекбоксы
+    if (e.target.closest('.player-row input[type="checkbox"]')) {
+        const cb = e.target;
+        const row = cb.closest('.player-row');
+        const container = row.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const pidx = parseInt(cb.dataset.pidx);
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep || ep.closed) return;
+        ep.players[pidx].done = cb.checked;
+        saveData();
+        renderCharPanel(charId);
+        return;
+    }
+
+    // Удаление участника
+    if (e.target.closest('.delete-player')) {
+        const btn = e.target;
+        const row = btn.closest('.player-row');
+        const container = row.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const pidx = parseInt(btn.dataset.pidx);
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep || ep.closed) return;
+        if (!confirm(`Удалить участника "${ep.players[pidx].name}"?`)) return;
+        ep.players.splice(pidx, 1);
+        saveData();
+        renderCharPanel(charId);
+        return;
+    }
+
+    // Завершить круг
+    if (e.target.closest('#finishRoundBtn')) {
+        const btn = e.target;
+        const container = btn.closest('.ep-display');
+        if (!container) return;
+        const panel = container.closest('.char-panel');
+        const select = panel ? panel.querySelector('.ep-select') : null;
+        if (!select || !select.value) return;
+        const epId = select.value;
+        const charId = selectedChar;
+        if (!charId || !epId) return;
+
+        const ep = data.characters[charId].episodes[epId];
+        if (!ep || ep.closed) return;
+        ep.players.forEach(p => p.done = false);
+        saveData();
+        renderCharPanel(charId);
+        return;
+    }
+
+    // Завершить эпизод
+    if (e.target.closest('#closeEpBtn')) {
+        const btn = e.target;
         const container = btn.closest('.ep-display');
         if (!container) return;
         const panel = container.closest('.char-panel');

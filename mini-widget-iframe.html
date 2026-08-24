@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Очередь персонажей — виджет</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: transparent;
+            color: #1a1a2e;
+            font-size: 13px;
+            line-height: 1.4;
+            min-width: 200px;
+        }
+
+        .widget-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+        }
+
+        /* ===== ОРАНЖЕВЫЙ БЛОК ОЧЕРЕДИ ===== */
+        .queue-block {
+            background: #fef9e7;
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 12px 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+            min-height: 80px;
+        }
+        .queue-block .queue-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #d97706;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .queue-block .queue-title .badge {
+            background: #f59e0b;
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 1px 8px;
+            border-radius: 20px;
+            margin-left: 4px;
+        }
+
+        .queue-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .queue-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .queue-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .queue-list::-webkit-scrollbar-thumb {
+            background: #fde68a;
+            border-radius: 4px;
+        }
+        .queue-list::-webkit-scrollbar-thumb:hover {
+            background: #f59e0b;
+        }
+
+        .queue-item {
+            font-size: 0.9rem;
+            padding: 6px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #fde68a;
+            transition: 0.15s;
+            border-radius: 4px;
+        }
+        .queue-item:last-child {
+            border-bottom: none;
+        }
+        .queue-item .queue-char {
+            font-weight: 500;
+            color: #1a1a2e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .queue-item .queue-char .avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #fde68a;
+        }
+        .queue-item .queue-char .avatar-placeholder {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            text-align: center;
+            line-height: 20px;
+            font-size: 10px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+        .queue-item .queue-ep {
+            color: #6b7280;
+            font-size: 0.85rem;
+            max-width: 55%;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .queue-empty {
+            color: #9ca3af;
+            font-style: italic;
+            font-size: 0.9rem;
+            padding: 12px 0;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .queue-empty .emoji {
+            font-size: 1.2rem;
+            margin-right: 4px;
+        }
+
+        /* Статус подключения (микро) */
+        .status-mini {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            font-size: 0.6rem;
+            color: #9ca3af;
+            padding: 4px 0 0 0;
+            opacity: 0.7;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .status-mini .dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #d1d5db;
+            transition: 0.3s;
+        }
+        .status-mini .dot.online {
+            background: #10b981;
+        }
+        .status-mini .dot.offline {
+            background: #ef4444;
+        }
+        .status-mini .dot.updating {
+            animation: pulse-dot 0.8s ease-in-out 2;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 480px) {
+            .queue-block {
+                padding: 10px 12px;
+            }
+            .queue-item {
+                font-size: 0.8rem;
+                padding: 5px 6px;
+            }
+            .queue-item .queue-ep {
+                font-size: 0.75rem;
+                max-width: 45%;
+            }
+            .queue-item .queue-char .avatar,
+            .queue-item .queue-char .avatar-placeholder {
+                width: 16px;
+                height: 16px;
+                line-height: 16px;
+                font-size: 8px;
+            }
+            .queue-block .queue-title {
+                font-size: 0.75rem;
+            }
+            .status-mini {
+                font-size: 0.55rem;
+            }
+        }
+        @media (max-width: 360px) {
+            .queue-item {
+                flex-wrap: wrap;
+                gap: 2px;
+            }
+            .queue-item .queue-ep {
+                max-width: 100%;
+                text-align: left;
+                padding-left: 26px;
+                white-space: normal;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div class="queue-block">
+            <div class="queue-title">
+                <span>⏳ Очередь персонажей</span>
+                <span class="badge" id="countBadge">0</span>
+            </div>
+            <div class="queue-list" id="queueList">
+                <div class="queue-empty">
+                    <span class="emoji">⏳</span> Загрузка...
+                </div>
+            </div>
+            <div class="status-mini">
+                <span class="dot offline" id="statusDotMini"></span>
+                <span id="statusTextMini">Подключение...</span>
+                <span id="updateTime"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // КОНФИГ FIREBASE (ТОТ ЖЕ, ЧТО В ОСНОВНОМ ПРИЛОЖЕНИИ)
+        // ================================================================
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyARt1JxJWkCG7u9BS8LoeiEH4Dan18T8R0",
+            authDomain: "spisokdolgovados.firebaseapp.com",
+            databaseURL: "https://spisokdolgovados-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "spisokdolgovados",
+            storageBucket: "spisokdolgovados.firebasestorage.app",
+            messagingSenderId: "502720889875",
+            appId: "1:502720889875:web:230487eba236d913202be6"
+        };
+        // ================================================================
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(FIREBASE_CONFIG);
+        }
+        const db = firebase.database();
+        const DB_PATH = 'debtTracker';
+
+        // Целевые персонажи (как в основном приложении)
+        const TARGET_CHARS = ['Эйгон', 'Линесса', 'Тристон'];
+
+        // DOM
+        const queueList = document.getElementById('queueList');
+        const countBadge = document.getElementById('countBadge');
+        const statusDotMini = document.getElementById('statusDotMini');
+        const statusTextMini = document.getElementById('statusTextMini');
+        const updateTime = document.getElementById('updateTime');
+
+        // ================================================================
+        // СТАТУС ПОДКЛЮЧЕНИЯ
+        // ================================================================
+        db.ref('.info/connected').on('value', function(snap) {
+            if (snap.val()) {
+                statusDotMini.className = 'dot online';
+                statusTextMini.textContent = 'Online';
+            } else {
+                statusDotMini.className = 'dot offline';
+                statusTextMini.textContent = 'Offline';
+            }
+        });
+
+        // ================================================================
+        // ЗАГРУЗКА ДАННЫХ
+        // ================================================================
+        function loadQueue() {
+            db.ref(DB_PATH).on('value', function(snapshot) {
+                const val = snapshot.val();
+                if (!val) {
+                    renderQueue([]);
+                    return;
+                }
+                const data = val;
+                const queueItems = [];
+
+                // Проходим по всем персонажам
+                Object.keys(data.characters || {}).forEach(charId => {
+                    const ch = data.characters[charId];
+                    const episodes = ch.episodes || {};
+
+                    Object.keys(episodes).forEach(epId => {
+                        const ep = episodes[epId];
+                        // Только открытые эпизоды
+                        if (!ep.closed) {
+                            // Ищем следующего игрока (кто не сделал)
+                            const nextPlayer = ep.players.find(p => !p.done);
+                            if (nextPlayer && TARGET_CHARS.includes(nextPlayer.name)) {
+                                queueItems.push({
+                                    charName: ch.name,
+                                    avatar: ch.avatar || '',
+                                    epTitle: ep.title,
+                                    nextPlayer: nextPlayer.name
+                                });
+                            }
+                        }
+                    });
+                });
+
+                // Сортируем по имени персонажа
+                queueItems.sort((a, b) => a.charName.localeCompare(b.charName));
+
+                renderQueue(queueItems);
+                updateTime.textContent = new Date().toLocaleTimeString();
+
+            }, function(error) {
+                console.error('Ошибка загрузки:', error);
+                queueList.innerHTML = `
+                    <div class="queue-empty">
+                        <span class="emoji">⚠️</span> Ошибка загрузки
+                    </div>
+                `;
+            });
+        }
+
+        // ================================================================
+        // РЕНДЕРИНГ ОЧЕРЕДИ
+        // ================================================================
+        function renderQueue(items) {
+            countBadge.textContent = items.length;
+
+            if (items.length === 0) {
+                queueList.innerHTML = `
+                    <div class="queue-empty">
+                        <span class="emoji">✅</span> Все персонажи в порядке!
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            items.forEach(item => {
+                const avatarHtml = item.avatar ?
+                    `<img class="avatar" src="${item.avatar}" alt="${item.charName}" loading="lazy" onerror="this.outerHTML='<span class=\\'avatar-placeholder\\'>${item.charName.charAt(0)}</span>'" />` :
+                    `<span class="avatar-placeholder">${item.charName.charAt(0)}</span>`;
+
+                html += `
+                    <div class="queue-item">
+                        <span class="queue-char">
+                            ${avatarHtml}
+                            ${item.charName}
+                        </span>
+                        <span class="queue-ep" title="${item.epTitle}">${item.epTitle}</span>
+                    </div>
+                `;
+            });
+
+            queueList.innerHTML = html;
+
+            // Отправляем высоту родительскому окну (для iframe)
+            sendHeight();
+        }
+
+        // ================================================================
+        // АВТО-ОБНОВЛЕНИЕ ВЫСОТЫ IFRAME
+        // ================================================================
+        function sendHeight() {
+            if (window.parent && window.parent !== window) {
+                const height = document.body.scrollHeight;
+                window.parent.postMessage({
+                    type: 'iframe-resize',
+                    height: height + 12
+                }, '*');
+            }
+        }
+
+        // Обновляем высоту при загрузке и изменениях
+        window.addEventListener('load', function() {
+            setTimeout(sendHeight, 150);
+        });
+
+        // Наблюдаем за изменениями в DOM
+        if (window.ResizeObserver) {
+            const ro = new ResizeObserver(() => {
+                sendHeight();
+            });
+            ro.observe(document.body);
+        }
+
+        // ================================================================
+        // ЗАПУСК
+        // ================================================================
+        loadQueue();
+
+        // Дополнительное обновление высоты каждые 2 секунды (для надёжности)
+        setInterval(sendHeight, 2000);
+    </script>
+</body>
+</html>

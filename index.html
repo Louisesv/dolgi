@@ -911,7 +911,6 @@ function renderGlobalQueue() {
             <div class="global-queue-block">
                 <div class="queue-title">⏳ Очередь персонажей</div>
                 ${queueItems.map(item => {
-                    const link = item.epLink || '#';
                     const isLink = item.epLink && item.epLink.trim() !== '';
                     return `
                         <div class="queue-item" data-char="${item.charId}" data-ep="${item.epId}">
@@ -1432,7 +1431,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // Удаление эпизода
+    // Удаление эпизода (кнопка 🗑)
     if (e.target.closest('#deleteEpBtn')) {
         const btn = e.target.closest('#deleteEpBtn');
         const container = btn.closest('.ep-display');
@@ -1522,9 +1521,9 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // Завершить эпизод
+    // ЗАВЕРШИТЬ ЭПИЗОД (кнопка 📌 Завершить эпизод)
     if (e.target.closest('#closeEpBtn')) {
-        const btn = e.target;
+        const btn = e.target.closest('#closeEpBtn');
         const container = btn.closest('.ep-display');
         if (!container) return;
         const panel = container.closest('.char-panel');
@@ -1534,98 +1533,19 @@ document.addEventListener('click', function(e) {
         const charId = selectedChar;
         if (!charId || !epId) return;
 
+        // Проверяем, есть ли участники
         const ep = data.characters[charId].episodes[epId];
         if (!ep) return;
-        if (!confirm(`Удалить эпизод "${ep.title}"?`)) return;
-        delete data.characters[charId].episodes[epId];
-        if (selectedEp === epId) {
-            selectedEp = null;
+        
+        // Если нет участников или они не все отмечены
+        const allDone = ep.players.length > 0 && ep.players.every(p => p.done);
+        if (!allDone) {
+            alert('Не все участники отметились! Сначала завершите круг.');
+            return;
         }
-        saveData();
-        renderCharPanel(charId);
-        updateCounter();
-        return;
-    }
-
-    // Чекбоксы
-    if (e.target.closest('.player-row input[type="checkbox"]')) {
-        const cb = e.target;
-        const row = cb.closest('.player-row');
-        const container = row.closest('.ep-display');
-        if (!container) return;
-        const panel = container.closest('.char-panel');
-        const select = panel ? panel.querySelector('.ep-select') : null;
-        if (!select || !select.value) return;
-        const epId = select.value;
-        const charId = selectedChar;
-        if (!charId || !epId) return;
-
-        const pidx = parseInt(cb.dataset.pidx);
-        const ep = data.characters[charId].episodes[epId];
-        if (!ep || ep.closed) return;
-        ep.players[pidx].done = cb.checked;
-        saveData();
-        renderCharPanel(charId);
-        return;
-    }
-
-    // Удаление участника
-    if (e.target.closest('.delete-player')) {
-        const btn = e.target;
-        const row = btn.closest('.player-row');
-        const container = row.closest('.ep-display');
-        if (!container) return;
-        const panel = container.closest('.char-panel');
-        const select = panel ? panel.querySelector('.ep-select') : null;
-        if (!select || !select.value) return;
-        const epId = select.value;
-        const charId = selectedChar;
-        if (!charId || !epId) return;
-
-        const pidx = parseInt(btn.dataset.pidx);
-        const ep = data.characters[charId].episodes[epId];
-        if (!ep || ep.closed) return;
-        if (!confirm(`Удалить участника "${ep.players[pidx].name}"?`)) return;
-        ep.players.splice(pidx, 1);
-        saveData();
-        renderCharPanel(charId);
-        return;
-    }
-
-    // Завершить круг
-    if (e.target.closest('#finishRoundBtn')) {
-        const btn = e.target;
-        const container = btn.closest('.ep-display');
-        if (!container) return;
-        const panel = container.closest('.char-panel');
-        const select = panel ? panel.querySelector('.ep-select') : null;
-        if (!select || !select.value) return;
-        const epId = select.value;
-        const charId = selectedChar;
-        if (!charId || !epId) return;
-
-        const ep = data.characters[charId].episodes[epId];
-        if (!ep || ep.closed) return;
-        ep.players.forEach(p => p.done = false);
-        saveData();
-        renderCharPanel(charId);
-        return;
-    }
-
-    // Завершить эпизод
-    if (e.target.closest('#closeEpBtn')) {
-        const btn = e.target;
-        const container = btn.closest('.ep-display');
-        if (!container) return;
-        const panel = container.closest('.char-panel');
-        const select = panel ? panel.querySelector('.ep-select') : null;
-        if (!select || !select.value) return;
-        const epId = select.value;
-        const charId = selectedChar;
-        if (!charId || !epId) return;
 
         modalTarget = { charId, epId };
-        modalComment.value = '';
+        modalComment.value = ep.result || '';
         modalOverlay.classList.add('visible');
         setTimeout(function() { modalComment.focus(); }, 100);
         return;
@@ -1646,9 +1566,12 @@ modalConfirm.addEventListener('click', function() {
     const comment = modalComment.value.trim();
     const ep = data.characters[charId].episodes[epId];
     if (!ep) return;
+    
+    // Закрываем эпизод
     ep.closed = true;
-    ep.result = comment || '';
+    ep.result = comment || 'Эпизод завершён';
     ep.players.forEach(p => p.done = false);
+    
     saveData();
     modalOverlay.classList.remove('visible');
     modalTarget = null;

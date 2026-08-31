@@ -51,12 +51,13 @@
         }
 
         .main-layout { display: flex; gap: 2rem; align-items: flex-start; }
-        .left-col { flex: 0 0 200px; min-width: 160px; }
+        .left-col { flex: 0 0 220px; min-width: 180px; }
         .right-col { flex: 1; min-width: 0; }
 
         .char-card {
             background: #fafbfc; border: 2px solid #e5e7eb; border-radius: 12px;
             padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: 0.2s;
+            position: relative;
         }
         .char-card:hover { background: #f3f4f6; border-color: #d1d5db; }
         .char-card.active { border-color: #4f46e5; background: #eef2ff; }
@@ -64,10 +65,41 @@
         .char-card .stats { font-size: 0.75rem; color: #6b7280; margin-top: 2px; }
         .char-card .stats span { margin-right: 12px; }
         .char-card .delete-char {
-            float: right; background: none; border: none; color: #d1d5db;
-            cursor: pointer; font-size: 0.9rem; transition: 0.2s; padding: 0 4px;
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: #d1d5db;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1;
         }
-        .char-card .delete-char:hover { color: #ef4444; }
+        .char-card .delete-char:hover {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+        .char-card .edit-char {
+            position: absolute;
+            top: 8px;
+            right: 32px;
+            background: none;
+            border: none;
+            color: #d1d5db;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+        .char-card .edit-char:hover {
+            color: #4f46e5;
+            background: #eef2ff;
+        }
 
         .char-panel {
             background: #fafbfc; border-radius: 12px; border: 2px solid #e5e7eb;
@@ -267,6 +299,113 @@
             transform: scale(1.08);
             background: #4338ca;
             box-shadow: 0 8px 32px rgba(79, 70, 229, 0.5);
+        }
+
+        /* ===== МОДАЛКА ДОБАВЛЕНИЯ ПЕРСОНАЖА ===== */
+        .modal-add-char {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+        .modal-add-char.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-add-char .modal-content {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 28px 32px;
+            max-width: 480px;
+            width: 92%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+        }
+        .modal-add-char .modal-content h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 16px;
+        }
+        .modal-add-char .modal-content label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 12px 0 4px 0;
+        }
+        .modal-add-char .modal-content input,
+        .modal-add-char .modal-content textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            background: #fafbfc;
+            transition: 0.2s;
+        }
+        .modal-add-char .modal-content input:focus,
+        .modal-add-char .modal-content textarea:focus {
+            border-color: #4f46e5;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
+        }
+        .modal-add-char .modal-content textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .modal-add-char .modal-content .hint {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .modal-add-char .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-add-char .modal-actions .btn-cancel {
+            background: transparent;
+            border: 2px solid #e5e7eb;
+            color: #374151;
+            padding: 8px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        .modal-add-char .modal-actions .btn-cancel:hover {
+            background: #f3f4f6;
+        }
+        .modal-add-char .modal-actions .btn-confirm {
+            background: #4f46e5;
+            border: none;
+            color: #ffffff;
+            padding: 8px 28px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        .modal-add-char .modal-actions .btn-confirm:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
         }
 
         /* ===== МОДАЛКА ДОБАВЛЕНИЯ ЭПИЗОДА ===== */
@@ -490,6 +629,7 @@
             .ep-display .ep-header { flex-direction: column; align-items: stretch; }
             .fab-add-ep { width: 50px; height: 50px; font-size: 26px; bottom: 20px; right: 20px; }
             .modal-add-ep .modal-content { padding: 20px; }
+            .modal-add-char .modal-content { padding: 20px; }
         }
         @media (max-width: 480px) {
             body { padding: 0.5rem; }
@@ -526,6 +666,50 @@
 
 <!-- ===== КНОПКА ДОБАВЛЕНИЯ ЭПИЗОДА (ПЛАВАЮЩАЯ) ===== -->
 <button class="fab-add-ep" id="fabAddEp" title="Добавить эпизод">➕</button>
+
+<!-- ===== МОДАЛКА ДОБАВЛЕНИЯ ПЕРСОНАЖА ===== -->
+<div class="modal-add-char" id="modalAddChar">
+    <div class="modal-content">
+        <h2>👤 Новый персонаж</h2>
+
+        <label for="addCharName">Имя персонажа</label>
+        <input type="text" id="addCharName" placeholder="Например: Джон Сноу" />
+
+        <label for="addCharAvatar">Ссылка на аватар</label>
+        <input type="text" id="addCharAvatar" placeholder="https://example.com/avatar.jpg" />
+        <div class="hint">Оставьте пустым для стандартной иконки</div>
+
+        <label for="addCharDesc">Описание</label>
+        <textarea id="addCharDesc" placeholder="Краткое описание персонажа..."></textarea>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" id="addCharCancel">Отмена</button>
+            <button class="btn-confirm" id="addCharConfirm">➕ Создать</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА РЕДАКТИРОВАНИЯ ПЕРСОНАЖА ===== -->
+<div class="modal-add-char" id="modalEditChar">
+    <div class="modal-content">
+        <h2>✏️ Редактировать персонажа</h2>
+
+        <label for="editCharName">Имя персонажа</label>
+        <input type="text" id="editCharName" placeholder="Имя персонажа" />
+
+        <label for="editCharAvatar">Ссылка на аватар</label>
+        <input type="text" id="editCharAvatar" placeholder="https://example.com/avatar.jpg" />
+        <div class="hint">Оставьте пустым для стандартной иконки</div>
+
+        <label for="editCharDesc">Описание</label>
+        <textarea id="editCharDesc" placeholder="Краткое описание персонажа..."></textarea>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" id="editCharCancel">Отмена</button>
+            <button class="btn-confirm" id="editCharConfirm">💾 Сохранить</button>
+        </div>
+    </div>
+</div>
 
 <!-- ===== МОДАЛКА ДОБАВЛЕНИЯ ЭПИЗОДА ===== -->
 <div class="modal-add-ep" id="modalAddEp">
@@ -620,6 +804,7 @@ let selectedEp = null;
 let selectedClosed = null;
 let modalTarget = null;
 let showOnlyQuests = false;
+let editingCharId = null;
 
 // DOM
 const charactersList = document.getElementById('charactersList');
@@ -630,6 +815,22 @@ const modalOverlay = document.getElementById('modalOverlay');
 const modalComment = document.getElementById('modalComment');
 const modalCancel = document.getElementById('modalCancel');
 const modalConfirm = document.getElementById('modalConfirm');
+
+// Модалка добавления персонажа
+const modalAddChar = document.getElementById('modalAddChar');
+const addCharName = document.getElementById('addCharName');
+const addCharAvatar = document.getElementById('addCharAvatar');
+const addCharDesc = document.getElementById('addCharDesc');
+const addCharCancel = document.getElementById('addCharCancel');
+const addCharConfirm = document.getElementById('addCharConfirm');
+
+// Модалка редактирования персонажа
+const modalEditChar = document.getElementById('modalEditChar');
+const editCharName = document.getElementById('editCharName');
+const editCharAvatar = document.getElementById('editCharAvatar');
+const editCharDesc = document.getElementById('editCharDesc');
+const editCharCancel = document.getElementById('editCharCancel');
+const editCharConfirm = document.getElementById('editCharConfirm');
 
 // Модалка добавления эпизода
 const modalAddEp = document.getElementById('modalAddEp');
@@ -973,6 +1174,7 @@ function renderCharacters() {
             <div class="char-card${active}" data-char="${id}">
                 <div class="name">
                     ${ch.name}
+                    <button class="edit-char" data-char="${id}" title="Редактировать персонажа">✎</button>
                     <button class="delete-char" data-char="${id}" title="Удалить персонажа">✕</button>
                 </div>
                 <div class="stats">
@@ -984,27 +1186,38 @@ function renderCharacters() {
     });
 
     html += `
-        <div style="margin-top:8px;display:flex;gap:6px;">
-            <input type="text" id="newCharName" placeholder="Имя..." style="flex:1;padding:6px 10px;border:2px solid #e5e7eb;border-radius:8px;font-size:0.85rem;outline:none;font-family:inherit;background:#fafbfc;">
-            <button class="btn btn-primary btn-sm" id="addCharBtn">➕</button>
+        <div style="margin-top:8px;">
+            <button class="btn btn-primary btn-sm" id="addCharBtn" style="width:100%;">➕ Добавить персонажа</button>
         </div>
     `;
 
     charactersList.innerHTML = html;
 
+    // Клик по карточке
     document.querySelectorAll('.char-card').forEach(function(el) {
         el.addEventListener('click', function(e) {
             if (e.target.closest('.delete-char')) return;
+            if (e.target.closest('.edit-char')) return;
             const id = this.dataset.char;
             selectCharacter(id);
         });
     });
 
+    // Удаление персонажа
     document.querySelectorAll('.delete-char').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             const id = this.dataset.char;
-            if (!confirm(`Удалить персонажа "${data.characters[id].name}"?`)) return;
+            const charName = data.characters[id].name;
+            const epCount = Object.keys(data.characters[id].episodes || {}).length;
+            
+            let message = `Удалить персонажа "${charName}"?`;
+            if (epCount > 0) {
+                message += `\nУ него есть ${epCount} эпизод(ов). Они тоже будут удалены!`;
+            }
+            
+            if (!confirm(message)) return;
+            
             delete data.characters[id];
             if (selectedChar === id) {
                 selectedChar = null;
@@ -1016,34 +1229,117 @@ function renderCharacters() {
         });
     });
 
+    // Редактирование персонажа
+    document.querySelectorAll('.edit-char').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const id = this.dataset.char;
+            openEditCharModal(id);
+        });
+    });
+
+    // Кнопка добавления персонажа
     const addBtn = document.getElementById('addCharBtn');
-    const input = document.getElementById('newCharName');
     if (addBtn) {
         addBtn.addEventListener('click', function() {
-            const name = input.value.trim();
-            if (!name) return;
-            const id = name.toLowerCase().replace(/[^a-zа-я]/g, '');
-            if (data.characters[id]) {
-                alert('Персонаж с таким именем уже есть');
-                return;
-            }
-            data.characters[id] = {
-                name: name,
-                avatar: '',
-                desc: '',
-                episodes: {}
-            };
-            input.value = '';
-            saveData();
-            renderAll();
-            selectCharacter(id);
-            updateAddEpSelect();
-        });
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') addBtn.click();
+            openAddCharModal();
         });
     }
 }
+
+// ================================================================
+// МОДАЛКА ДОБАВЛЕНИЯ ПЕРСОНАЖА
+// ================================================================
+function openAddCharModal() {
+    addCharName.value = '';
+    addCharAvatar.value = '';
+    addCharDesc.value = '';
+    modalAddChar.classList.add('visible');
+    setTimeout(() => addCharName.focus(), 100);
+}
+
+function closeAddCharModal() {
+    modalAddChar.classList.remove('visible');
+}
+
+addCharCancel.addEventListener('click', closeAddCharModal);
+
+modalAddChar.addEventListener('click', function(e) {
+    if (e.target === modalAddChar) closeAddCharModal();
+});
+
+addCharConfirm.addEventListener('click', function() {
+    const name = addCharName.value.trim();
+    if (!name) {
+        alert('Введите имя персонажа');
+        return;
+    }
+    
+    const id = name.toLowerCase().replace(/[^a-zа-я0-9]/g, '');
+    if (data.characters[id]) {
+        alert('Персонаж с таким именем уже есть');
+        return;
+    }
+    
+    data.characters[id] = {
+        name: name,
+        avatar: addCharAvatar.value.trim() || '',
+        desc: addCharDesc.value.trim() || '',
+        episodes: {}
+    };
+    
+    saveData();
+    closeAddCharModal();
+    renderAll();
+    selectCharacter(id);
+    updateAddEpSelect();
+});
+
+// ================================================================
+// МОДАЛКА РЕДАКТИРОВАНИЯ ПЕРСОНАЖА
+// ================================================================
+function openEditCharModal(charId) {
+    const ch = data.characters[charId];
+    if (!ch) return;
+    
+    editingCharId = charId;
+    editCharName.value = ch.name;
+    editCharAvatar.value = ch.avatar || '';
+    editCharDesc.value = ch.desc || '';
+    modalEditChar.classList.add('visible');
+    setTimeout(() => editCharName.focus(), 100);
+}
+
+function closeEditCharModal() {
+    modalEditChar.classList.remove('visible');
+    editingCharId = null;
+}
+
+editCharCancel.addEventListener('click', closeEditCharModal);
+
+modalEditChar.addEventListener('click', function(e) {
+    if (e.target === modalEditChar) closeEditCharModal();
+});
+
+editCharConfirm.addEventListener('click', function() {
+    if (!editingCharId) return;
+    
+    const name = editCharName.value.trim();
+    if (!name) {
+        alert('Введите имя персонажа');
+        return;
+    }
+    
+    const ch = data.characters[editingCharId];
+    ch.name = name;
+    ch.avatar = editCharAvatar.value.trim() || '';
+    ch.desc = editCharDesc.value.trim() || '';
+    
+    saveData();
+    closeEditCharModal();
+    renderAll();
+    selectCharacter(editingCharId);
+});
 
 // ================================================================
 // ПАНЕЛЬ ПЕРСОНАЖА (СПРАВА)
@@ -1270,7 +1566,6 @@ function renderEpisodeDisplay(charId, epId) {
 
     const questStatus = ep.quest ? 'active' : '';
 
-    // Ссылка на эпизод
     const linkHtml = ep.link ? `
         <div class="ep-link">
             <span class="link-label">🔗 Ссылка:</span>
@@ -1317,7 +1612,7 @@ function showEditLinkModal(charId, epId) {
 
     const currentLink = ep.link || '';
     const newLink = prompt('Введите ссылку на эпизод:', currentLink);
-    if (newLink === null) return; // Отмена
+    if (newLink === null) return;
 
     ep.link = newLink.trim();
     saveData();
@@ -1431,7 +1726,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // Удаление эпизода (кнопка 🗑)
+    // Удаление эпизода
     if (e.target.closest('#deleteEpBtn')) {
         const btn = e.target.closest('#deleteEpBtn');
         const container = btn.closest('.ep-display');
@@ -1521,7 +1816,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // ЗАВЕРШИТЬ ЭПИЗОД (кнопка 📌 Завершить эпизод)
+    // Завершить эпизод
     if (e.target.closest('#closeEpBtn')) {
         const btn = e.target.closest('#closeEpBtn');
         const container = btn.closest('.ep-display');
@@ -1533,11 +1828,9 @@ document.addEventListener('click', function(e) {
         const charId = selectedChar;
         if (!charId || !epId) return;
 
-        // Проверяем, есть ли участники
         const ep = data.characters[charId].episodes[epId];
         if (!ep) return;
         
-        // Если нет участников или они не все отмечены
         const allDone = ep.players.length > 0 && ep.players.every(p => p.done);
         if (!allDone) {
             alert('Не все участники отметились! Сначала завершите круг.');
@@ -1567,7 +1860,6 @@ modalConfirm.addEventListener('click', function() {
     const ep = data.characters[charId].episodes[epId];
     if (!ep) return;
     
-    // Закрываем эпизод
     ep.closed = true;
     ep.result = comment || 'Эпизод завершён';
     ep.players.forEach(p => p.done = false);
